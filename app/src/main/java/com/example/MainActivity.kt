@@ -5,6 +5,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -86,6 +90,7 @@ import com.example.data.MonthlyCustomerStatement
 import com.example.data.PaymentRecord
 import com.example.ui.auth.AuthScreen
 import com.example.ui.components.ConfirmDeleteDialog
+import com.example.ui.components.SplashOverlay
 import com.example.ui.components.CustomerFormDialog
 import com.example.ui.components.MilkEntryFormDialog
 import com.example.ui.components.PaymentFormDialog
@@ -149,16 +154,22 @@ fun AppContent() {
         }
     }
 
-    val user = currentUser
-    if (user == null) {
-        AuthScreen(onAuthSuccess = { currentUser = Firebase.auth.currentUser })
-    } else {
-        key(user.uid) {
-            MilkDiaryMainShell(
-                currentUserId = user.uid,
-                userDisplayName = user.displayName,
-                userEmail = user.email
-            )
+    var showSplash by remember { mutableStateOf(true) }
+    Box(modifier = Modifier.fillMaxSize()) {
+        val user = currentUser
+        if (user == null) {
+            AuthScreen(onAuthSuccess = { currentUser = Firebase.auth.currentUser })
+        } else {
+            key(user.uid) {
+                MilkDiaryMainShell(
+                    currentUserId = user.uid,
+                    userDisplayName = user.displayName,
+                    userEmail = user.email
+                )
+            }
+        }
+        if (showSplash) {
+            SplashOverlay(onFinished = { showSplash = false })
         }
     }
 }
@@ -444,6 +455,13 @@ private fun MilkDiaryMainShell(
                         NavHost(
                             navController = navController,
                             startDestination = ROUTE_TODAY,
+                            enterTransition = {
+                                fadeIn(animationSpec = tween(280)) +
+                                    slideInHorizontally(animationSpec = tween(280)) { it / 5 }
+                            },
+                            exitTransition = { fadeOut(animationSpec = tween(200)) },
+                            popEnterTransition = { fadeIn(animationSpec = tween(280)) },
+                            popExitTransition = { fadeOut(animationSpec = tween(200)) },
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(if (isPrimaryScreen) innerPadding else androidx.compose.foundation.layout.PaddingValues(0.dp))
