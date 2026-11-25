@@ -21,21 +21,9 @@ jobs:
           mkdir -p "$RES_DIR"
           STRINGS_FILE="$RES_DIR/strings.xml"
           if [ ! -f "$STRINGS_FILE" ]; then
-            cat << 'EOF' > "$STRINGS_FILE"
-<resources>
-    <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID</string>
-</resources>
-EOF
+            printf '<resources>\n    <string name="default_web_client_id" translatable="false">YOUR_WEB_CLIENT_ID</string>\n</resources>\n' > "$STRINGS_FILE"
           elif ! grep -q "default_web_client_id" "$STRINGS_FILE"; then
-            python3 -c '
-from pathlib import Path
-p = Path("app/src/main/res/values/strings.xml")
-txt = p.read_text(encoding="utf-8")
-tag = "<string name=\"default_web_client_id\" translatable=\"false\">YOUR_WEB_CLIENT_ID</string>"
-if "</resources>" in txt:
-    txt = txt.replace("</resources>", f"    {tag}\n</resources>", 1)
-p.write_text(txt, encoding="utf-8")
-'
+            python3 -c 'from pathlib import Path; p = Path("app/src/main/res/values/strings.xml"); t = p.read_text(encoding="utf-8"); tag = "<string name=\"default_web_client_id\" translatable=\"false\">YOUR_WEB_CLIENT_ID</string>"; p.write_text(t.replace("</resources>", f"    {tag}\n</resources>", 1), encoding="utf-8") if "</resources>" in t else None'
           fi
       - name: Build Debug APK
         run: |
