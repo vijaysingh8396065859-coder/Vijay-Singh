@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,9 +21,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.FileDownload
+import androidx.compose.material.icons.rounded.Send
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.CustomerAccountSummary
@@ -169,6 +177,102 @@ fun DairyDashboardScreen(
                 items(items = rows, key = { "hisaab_${it.summary.customer.id}" }) { row ->
                     CustomerHisaabCard(row = row)
                 }
+            }
+
+            item(key = "dash_export") {
+                ExportBackupCard(snapshot = snapshot)
+            }
+        }
+    }
+}
+
+private fun buildBackupCsv(snapshot: DairyDataSnapshot): String {
+    val sb = StringBuilder()
+    sb.appendLine("Milk Diary - Poora Hisaab Backup")
+    sb.appendLine()
+    sb.appendLine("=== GRAAHAK ===")
+    sb.appendLine("Naam,Phone,Kisam,Rate(per liter),Kul Doodh(L),Kul Bill,Bhugtan,Baaki")
+    snapshot.customerSummaries.forEach { sum ->
+        val c = sum.customer
+        sb.appendLine(
+            listOf(
+                c.name, c.phone, c.parsedMilkType.labelHi,
+                c.ratePerLiter.toString(), sum.totalMilkLiters.toString(),
+                sum.totalMilkAmount.toString(), sum.totalPaidAmount.toString(),
+                sum.balanceDue.toString()
+            ).joinToString(",") { it.replace(",", " ") }
+        )
+    }
+    sb.appendLine()
+    sb.appendLine("=== DOODH ENTRY ===")
+    sb.appendLine("Taarikh,Shift,Graahak,Kisam,Liter,Rate,Amount,Absent")
+    snapshot.milkEntries.sortedBy { it.dateKey }.forEach { e ->
+        sb.appendLine(
+            listOf(
+                e.dateKey, e.parsedShift.labelHi, e.customerName, e.parsedMilkType.labelHi,
+                e.quantityLiters.toString(), e.ratePerLiter.toString(),
+                e.totalAmount.toString(), if (e.absent) "Haan" else "Nahi"
+            ).joinToString(",") { it.replace(",", " ") }
+        )
+    }
+    sb.appendLine()
+    sb.appendLine("=== PAYMENT ===")
+    sb.appendLine("Taarikh,Graahak,Amount,Mode")
+    snapshot.payments.sortedBy { it.dateKey }.forEach { pay ->
+        sb.appendLine(
+            listOf(
+                pay.dateKey, pay.customerName, pay.amount.toString(), pay.parsedMode.labelHi
+            ).joinToString(",") { it.replace(",", " ") }
+        )
+    }
+    return sb.toString()
+}
+
+@Composable
+private fun ExportBackupCard(snapshot: DairyDataSnapshot) {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "डेटा की सुरक्षा (Backup)",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "पूरा हिसाब एक file में निकालकर WhatsApp या Drive पर रख लो — " +
+                    "phone badle ya kho jaye, हिसाब हमेशा safe रहेगा।",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = {
+                    val csv = buildBackupCsv(snapshot)
+                    val intent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Milk Diary Backup")
+                        putExtra(Intent.EXTRA_TEXT, csv)
+                    }
+                    runCatching {
+                        context.startActivity(Intent.createChooser(intent, "Backup bhejein"))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.FileDownload,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(text = "  पूरा हिसाब Export करें")
             }
         }
     }
@@ -398,6 +502,34 @@ private fun CustomerHisaabCard(row: CustomerHisaabRow) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+            if (due > 0.0 && customer.phone.isNotBlank()) {
+                val context = LocalContext.current
+                OutlinedButton(
+                    onClick = {
+                        val digits = customer.phone.filter { it.isDigit() }
+                        val waPhone = when {
+                            digits.length == 10 -> "91$digits"
+                            digits.startsWith("91") && digits.length == 12 -> digits
+                            else -> digits
+                        }
+                        val msg = "नमस्ते ${customer.name} जी, आपका दूध का कुल बाकी " +
+                            "${DairyFormatters.formatRupees(due)} है। कृपया भुगतान कर दें। धन्यवाद! — Milk Diary"
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://wa.me/$waPhone?text=${Uri.encode(msg)}")
+                        )
+                        runCatching { context.startActivity(intent) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Send,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(text = "  WhatsApp पर बाकी याद दिलाएँ")
+                }
             }
         }
     }
