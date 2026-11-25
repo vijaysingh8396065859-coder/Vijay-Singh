@@ -1,0 +1,226 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "A dairy customer whose daily milk deliveries and payments are tracked.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID."
+        },
+        "name": {
+          "type": "string",
+          "description": "Customer full name (1 to 80 characters)."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Optional customer phone number (up to 20 characters)."
+        },
+        "address": {
+          "type": "string",
+          "description": "Optional street or locality address (up to 120 characters)."
+        },
+        "milkType": {
+          "type": "string",
+          "enum": ["BUFFALO", "COW", "MIXED"],
+          "description": "Default milk type supplied to the customer."
+        },
+        "defaultShift": {
+          "type": "string",
+          "enum": ["MORNING", "EVENING", "BOTH"],
+          "description": "Usual delivery shift."
+        },
+        "defaultQtyLiters": {
+          "type": "number",
+          "description": "Default daily milk quantity in liters (0 to 1000)."
+        },
+        "ratePerLiter": {
+          "type": "number",
+          "description": "Default rate per liter in INR (1 to 1000)."
+        },
+        "openingBalance": {
+          "type": "number",
+          "description": "Opening due (+) or advance (-) balance in INR."
+        },
+        "active": {
+          "type": "boolean",
+          "description": "Whether the customer currently receives active deliveries."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and updates."
+        }
+      },
+      "required": [
+        "userId",
+        "name",
+        "phone",
+        "address",
+        "milkType",
+        "defaultShift",
+        "defaultQtyLiters",
+        "ratePerLiter",
+        "openingBalance",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "MilkEntry": {
+      "title": "MilkEntry",
+      "description": "A daily milk delivery record for a customer in a specific shift.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Document ID of the customer under the same user."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Denormalized customer display name (1 to 80 characters)."
+        },
+        "dateKey": {
+          "type": "string",
+          "description": "Delivery date formatted as YYYY-MM-DD."
+        },
+        "shift": {
+          "type": "string",
+          "enum": ["MORNING", "EVENING"],
+          "description": "Delivery shift."
+        },
+        "milkType": {
+          "type": "string",
+          "enum": ["BUFFALO", "COW", "MIXED"],
+          "description": "Type of milk delivered."
+        },
+        "quantityLiters": {
+          "type": "number",
+          "description": "Quantity delivered in liters (0 to 1000)."
+        },
+        "ratePerLiter": {
+          "type": "number",
+          "description": "Rate per liter in INR (0 to 1000)."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Computed total cost in INR (0 to 1000000)."
+        },
+        "absent": {
+          "type": "boolean",
+          "description": "True when customer skipped delivery on this date/shift."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional delivery remark (up to 200 characters)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and updates."
+        }
+      },
+      "required": [
+        "userId",
+        "customerId",
+        "customerName",
+        "dateKey",
+        "shift",
+        "milkType",
+        "quantityLiters",
+        "ratePerLiter",
+        "totalAmount",
+        "absent",
+        "note",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "A payment collected from a customer against their milk ledger.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated owner UID."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Document ID of the customer under the same user."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Denormalized customer display name (1 to 80 characters)."
+        },
+        "dateKey": {
+          "type": "string",
+          "description": "Payment date formatted as YYYY-MM-DD."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount received in INR (> 0 up to 1000000)."
+        },
+        "paymentMode": {
+          "type": "string",
+          "enum": ["CASH", "UPI", "BANK"],
+          "description": "Mode of payment."
+        },
+        "note": {
+          "type": "string",
+          "description": "Optional payment remark (up to 200 characters)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp set via FieldValue.serverTimestamp() on creation and updates."
+        }
+      },
+      "required": [
+        "userId",
+        "customerId",
+        "customerName",
+        "dateKey",
+        "amount",
+        "paymentMode",
+        "note",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/customers/{customerId}": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Owner-scoped collection of dairy customers and their default delivery rates."
+    },
+    "/users/{userId}/milk_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/MilkEntry" },
+      "description": "Owner-scoped collection of daily milk delivery records."
+    },
+    "/users/{userId}/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Owner-scoped collection of customer payments."
+    }
+  }
+}

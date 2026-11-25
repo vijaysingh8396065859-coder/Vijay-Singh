@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">मिल्क डायरी</string>
+    <string name="nav_today">आज</string>
+    <string name="nav_customers">ग्राहक</string>
+    <string name="nav_payments">पेमेंट</string>
+    <string name="nav_reports">हिसाब</string>
+    <string name="auth_title">मिल्क डायरी</string>
+    <string name="auth_subtitle">दूध का रोज़ाना हिसाब, ग्राहक खाता और डेली पेमेंट — सब एक जगह सुरक्षित</string>
+    <string name="auth_sign_in_google">Google से साइन इन करें</string>
+    <string name="action_add_customer">नया ग्राहक</string>
+    <string name="action_add_milk">दूध जोड़ें</string>
+    <string name="action_add_payment">पेमेंट लें</string>
+    <string name="action_share_bill">बिल शेयर करें</string>
+    <string name="action_sign_out">साइन आउट करें</string>
+    <string name="action_save">सेव करें</string>
+    <string name="action_cancel">रद्द करें</string>
+    <string name="action_delete">हटाएं</string>
+    <string name="action_edit">बदलें</string>
+    <string name="action_retry">पुनः प्रयास करें</string>
+    <string name="cd_back">वापस जाएं</string>
+    <string name="cd_prev_date">पिछली तारीख</string>
+    <string name="cd_next_date">अगली तारीख</string>
+    <string name="cd_prev_month">पिछला महीना</string>
+    <string name="cd_next_month">अगला महीना</string>
+    <string name="cd_hero_dairy">सुबह की डेयरी और दूध के हिसाब की डायरी</string>
+    <string name="cd_add_customer">नया ग्राहक जोड़ें</string>
+    <string name="cd_add_entry">नई एंट्री जोड़ें</string>
+    <string name="cd_edit_item">विवरण बदलें</string>
+    <string name="cd_delete_item">रिकॉर्ड हटाएं</string>
+    <string name="cd_share_bill">मासिक बिल साझा करें</string>
+    <string name="cd_decrease_qty">मात्रा घटाएं</string>
+    <string name="cd_increase_qty">मात्रा बढ़ाएं</string>
+    <string name="cd_quick_payment">तेज़ पेमेंट दर्ज करें</string>
+    <string name="cd_clear_search">खोज साफ़ करें</string>
+</resources>

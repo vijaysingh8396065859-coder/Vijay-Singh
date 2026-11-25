@@ -1,0 +1,6 @@
+{
+  "name": "मिल्क डायरी",
+  "description": "डेयरी और दूध विक्रेताओं के लिए दैनिक दूध वितरण, ग्राहक खाता और पेमेंट हिसाब-किताब ऐप।",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
