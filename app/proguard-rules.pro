@@ -19,3 +19,6 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Milk Diary: Firestore maps these data classes by reflection - never shrink/obfuscate them.
+-keep class com.example.data.** { *; }
