@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">मिल्क डायरी</string>
     <string name="nav_today">आज</string>
+    <string name="nav_dashboard">डेयरी</string>
     <string name="nav_customers">ग्राहक</string>
     <string name="nav_payments">पेमेंट</string>
     <string name="nav_reports">हिसाब</string>
