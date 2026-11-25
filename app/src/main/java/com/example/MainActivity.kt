@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.Group
+import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Today
 import androidx.compose.material.icons.rounded.AccountBalanceWallet
 import androidx.compose.material.icons.rounded.Add
@@ -34,6 +35,7 @@ import androidx.compose.material.icons.rounded.Assessment
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Group
 import androidx.compose.material.icons.rounded.PersonAdd
+import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,6 +97,7 @@ import com.example.ui.components.CustomerFormDialog
 import com.example.ui.components.MilkEntryFormDialog
 import com.example.ui.components.PaymentFormDialog
 import com.example.ui.screens.CustomerDetailScreen
+import com.example.ui.screens.DairyDashboardScreen
 import com.example.ui.screens.CustomersScreen
 import com.example.ui.screens.PaymentsScreen
 import com.example.ui.screens.ReportsScreen
@@ -109,6 +112,7 @@ import com.google.firebase.auth.auth
 import com.google.firebase.firestore.FirebaseFirestore
 
 const val ROUTE_TODAY = "today"
+const val ROUTE_DASHBOARD = "dashboard"
 const val ROUTE_CUSTOMERS = "customers"
 const val ROUTE_PAYMENTS = "payments"
 const val ROUTE_REPORTS = "reports"
@@ -123,6 +127,7 @@ private data class NavDestinationItem(
 
 private val primaryDestinations = listOf(
     NavDestinationItem(ROUTE_TODAY, R.string.nav_today, Icons.Rounded.Today, Icons.Outlined.Today),
+    NavDestinationItem(ROUTE_DASHBOARD, R.string.nav_dashboard, Icons.Rounded.Storefront, Icons.Outlined.Storefront),
     NavDestinationItem(ROUTE_CUSTOMERS, R.string.nav_customers, Icons.Rounded.Group, Icons.Outlined.Group),
     NavDestinationItem(ROUTE_PAYMENTS, R.string.nav_payments, Icons.Rounded.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet),
     NavDestinationItem(ROUTE_REPORTS, R.string.nav_reports, Icons.Rounded.Assessment, Icons.Outlined.Assessment)
@@ -521,6 +526,10 @@ private fun MilkDiaryMainShell(
                                         navController.navigate("customer_detail/$custId")
                                     }
                                 )
+                            }
+
+                            composable(ROUTE_DASHBOARD) {
+                                DairyDashboardScreen(snapshot = snapshot)
                             }
 
                             composable(ROUTE_CUSTOMERS) {
