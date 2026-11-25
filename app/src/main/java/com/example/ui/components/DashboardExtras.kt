@@ -227,7 +227,7 @@ fun SplashOverlay(onFinished: () -> Unit) {
     LaunchedEffect(Unit) {
         launch { scale.animateTo(1f, animationSpec = tween(600)) }
         launch { alpha.animateTo(1f, animationSpec = tween(500)) }
-        delay(1500)
+        delay(1000)
         onFinished()
     }
     Box(
