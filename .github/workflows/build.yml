@@ -25,16 +25,16 @@ jobs:
           elif ! grep -q "default_web_client_id" "$STRINGS_FILE"; then
             python3 -c 'from pathlib import Path; p = Path("app/src/main/res/values/strings.xml"); t = p.read_text(encoding="utf-8"); tag = "<string name=\"default_web_client_id\" translatable=\"false\">YOUR_WEB_CLIENT_ID</string>"; p.write_text(t.replace("</resources>", f"    {tag}\n</resources>", 1), encoding="utf-8") if "</resources>" in t else None'
           fi
-      - name: Build Debug APK
+      - name: Build Release APK
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
-            ./gradlew assembleDebug
+            ./gradlew assembleRelease
           else
-            gradle assembleDebug
+            gradle assembleRelease
           fi
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: app-release
           path: "**/*.apk"
