@@ -65,6 +65,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.ui.components.WeekMilkChartCard
 import com.example.R
 import com.example.data.Customer
 import com.example.data.CustomerShift
@@ -153,6 +154,13 @@ fun TodayScreen(
                     totalBill = totalDayBill,
                     totalCollected = totalDayCollected,
                     entryCount = dayEntries.size
+                )
+            }
+
+            item(key = "week_chart") {
+                WeekMilkChartCard(
+                    snapshot = snapshot,
+                    selectedDateKey = selectedDateKey
                 )
             }
 
