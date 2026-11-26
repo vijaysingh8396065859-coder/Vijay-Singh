@@ -151,15 +151,18 @@ class DairyViewModel(
     val isMutating: StateFlow<Boolean> = _isMutating.asStateFlow()
 
     private val rateDataFlow = combine(
-        repository.observeRateOverrides(currentUserId),
+        repository.observeRateOverrides(currentUserId)
+            .catch { emit(emptyMap<String, Double>()) },
         repository.observeImportedChart(currentUserId)
+            .catch { emit(emptyMap<String, Double>()) }
     ) { overrides, imported -> overrides to imported }
 
     val uiState: StateFlow<UiState<DairyDataSnapshot>> = combine(
         repository.observeCustomers(currentUserId),
         repository.observeMilkEntries(currentUserId),
         repository.observePayments(currentUserId),
-        repository.observeCollections(currentUserId),
+        repository.observeCollections(currentUserId)
+            .catch { emit(emptyList<MilkCollection>()) },
         rateDataFlow
     ) { customers, entries, payments, collections, rateData ->
         val (rateOverrides, importedRates) = rateData
