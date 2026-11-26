@@ -234,3 +234,30 @@ object DairyFormatters {
     fun roundTwoDecimals(value: Double): Double =
         (value * 100.0).roundToLong() / 100.0
 }
+
+@Keep
+@IgnoreExtraProperties
+data class MilkCollection(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val supplierName: String = "",
+    val sampleNo: String = "",
+    val dateKey: String = "",
+    val shift: String = DeliveryShift.MORNING.name,
+    val quantityLiters: Double = 0.0,
+    val fat: Double = 0.0,
+    val snf: Double = 0.0,
+    val ratePerLiter: Double = 0.0,
+    val totalAmount: Double = 0.0,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
+) {
+    val parsedShift: DeliveryShift get() = DeliveryShift.fromName(shift)
+}
+
+data class SupplierSummary(
+    val supplierName: String,
+    val totalLiters: Double,
+    val totalAmount: Double,
+    val entriesCount: Int
+)
