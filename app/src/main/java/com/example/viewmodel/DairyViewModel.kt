@@ -9,11 +9,14 @@ import com.example.data.CustomerShift
 import com.example.data.DairyFormatters
 import com.example.data.DairyRepository
 import com.example.data.DeliveryShift
+import com.example.data.MilkCollection
 import com.example.data.MilkEntry
 import com.example.data.MilkType
 import com.example.data.MonthlyCustomerStatement
 import com.example.data.PaymentMode
 import com.example.data.PaymentRecord
+import com.example.data.RateChart
+import com.example.data.SupplierSummary
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,8 +37,23 @@ sealed interface UiState<out T> {
 data class DairyDataSnapshot(
     val customers: List<Customer> = emptyList(),
     val milkEntries: List<MilkEntry> = emptyList(),
-    val payments: List<PaymentRecord> = emptyList()
+    val payments: List<PaymentRecord> = emptyList(),
+    val collections: List<MilkCollection> = emptyList(),
+    val rateOverrides: Map<String, Double> = emptyMap()
 ) {
+    val supplierSummaries: List<SupplierSummary> by lazy {
+        collections.groupBy { it.supplierName.trim().lowercase() }
+            .map { (_, list) ->
+                SupplierSummary(
+                    supplierName = list.first().supplierName,
+                    totalLiters = DairyFormatters.roundTwoDecimals(list.sumOf { it.quantityLiters }),
+                    totalAmount = DairyFormatters.roundTwoDecimals(list.sumOf { it.totalAmount }),
+                    entriesCount = list.size
+                )
+            }
+            .sortedByDescending { it.totalAmount }
+    }
+
     val customerSummaries: List<CustomerAccountSummary> by lazy {
         val entriesByCustomer = milkEntries.groupBy { it.customerId }
         val paymentsByCustomer = payments.groupBy { it.customerId }
@@ -134,13 +152,17 @@ class DairyViewModel(
     val uiState: StateFlow<UiState<DairyDataSnapshot>> = combine(
         repository.observeCustomers(currentUserId),
         repository.observeMilkEntries(currentUserId),
-        repository.observePayments(currentUserId)
-    ) { customers, entries, payments ->
+        repository.observePayments(currentUserId),
+        repository.observeCollections(currentUserId),
+        repository.observeRateOverrides(currentUserId)
+    ) { customers, entries, payments, collections, rateOverrides ->
         UiState.Success(
             DairyDataSnapshot(
                 customers = customers,
                 milkEntries = entries,
-                payments = payments
+                payments = payments,
+                collections = collections,
+                rateOverrides = rateOverrides
             )
         ) as UiState<DairyDataSnapshot>
     }
@@ -373,6 +395,82 @@ class DairyViewModel(
                 _snackbarMessage.value = "पेमेंट रिकॉर्ड हटाया गया"
             }.onFailure { err ->
                 _snackbarMessage.value = err.localizedMessage ?: "पेमेंट हटाने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun saveCollectionEntry(
+        supplierName: String,
+        sampleNo: String,
+        dateKey: String,
+        shift: DeliveryShift,
+        quantityLiters: Double,
+        fat: Double,
+        snf: Double,
+        ratePerLiter: Double,
+        totalAmount: Double,
+        onComplete: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.addCollection(
+                userId = currentUserId,
+                supplierName = supplierName,
+                sampleNo = sampleNo,
+                dateKey = dateKey,
+                shift = shift,
+                quantityLiters = quantityLiters,
+                fat = fat,
+                snf = snf,
+                ratePerLiter = ratePerLiter,
+                totalAmount = totalAmount
+            )
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value =
+                    "$supplierName का दूध दर्ज हुआ — ${DairyFormatters.formatRupees(totalAmount)}"
+                onComplete()
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "दूध दर्ज करने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun deleteCollectionEntry(collectionId: String) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.deleteCollection(currentUserId, collectionId)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "कलेक्शन रिकॉर्ड हटाया गया"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "रिकॉर्ड हटाने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun saveRateOverride(fat: Double, snf: Double, rate: Double) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.saveRateOverride(currentUserId, fat, snf, rate)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "रेट अपडेट हुआ — FAT $fat / SNF $snf = ${DairyFormatters.formatRupees(rate)}"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "रेट सेव करने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun resetRateOverride(fat: Double, snf: Double) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.deleteRateOverride(currentUserId, fat, snf)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "रेट असली लिस्ट पर वापस हुआ"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "रेट रीसेट करने में त्रुटि हुई।"
             }
         }
     }
