@@ -101,7 +101,7 @@ fun CollectionScreen(
                 val summary = snapshot.supplierSummaries.firstOrNull { it.supplierName == name }
                 val last = snapshot.collections
                     .filter { it.supplierName == name }
-                    .maxByOrNull { it.createdAt?.time ?: 0L }
+                    .maxByOrNull { it.createdAt?.seconds ?: 0L }
                 Triple(name, summary, last)
             }
         }
