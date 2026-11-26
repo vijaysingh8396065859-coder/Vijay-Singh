@@ -550,8 +550,9 @@ class DairyRepository(
             require(cleanSample.length <= 20) { "सैंपल नंबर अधिकतम 20 अक्षरों का हो सकता है।" }
             require(isValidDateKey(dateKey)) { "तारीख का प्रारूप सही नहीं है।" }
             require(quantityLiters > 0.0 && quantityLiters <= 100000.0) { "दूध की मात्रा सही नहीं है।" }
-            require(fat in 1.0..15.0) { "FAT सही नहीं है।" }
-            require(snf in 1.0..15.0) { "SNF सही नहीं है।" }
+            require(
+                (fat == 0.0 && snf == 0.0) || (fat in 1.0..15.0 && snf in 1.0..15.0)
+            ) { "FAT/SNF सही नहीं है।" }
 
             val docRef = db.collection("users").document(uid).collection("collections").document()
             docPath = docRef.path
@@ -592,6 +593,40 @@ class DairyRepository(
             throw e
         } catch (e: Exception) {
             handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    /** Dairy par machine se FAT/SNF nikalne ke baad pending entry ko pura karo. */
+    suspend fun updateCollectionFatSnf(
+        userId: String,
+        collectionId: String,
+        fat: Double,
+        snf: Double,
+        ratePerLiter: Double,
+        totalAmount: Double
+    ): Result<Unit> {
+        var docPath = "users/$userId/collections/$collectionId"
+        return try {
+            val uid = requireUserId(userId)
+            require(fat in 1.0..15.0 && snf in 1.0..15.0) { "FAT/SNF सही नहीं है।" }
+            val docRef = db.collection("users").document(uid)
+                .collection("collections").document(collectionId)
+            docPath = docRef.path
+            docRef.update(
+                mapOf(
+                    "fat" to fat,
+                    "snf" to snf,
+                    "ratePerLiter" to DairyFormatters.roundTwoDecimals(ratePerLiter),
+                    "totalAmount" to DairyFormatters.roundTwoDecimals(totalAmount),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
             Result.failure(e)
         }
     }
