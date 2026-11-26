@@ -11,6 +11,7 @@ import com.example.data.DairyRepository
 import com.example.data.DeliveryShift
 import com.example.data.MilkCollection
 import com.example.data.MilkSupplier
+import com.example.data.SupplierTransaction
 import com.example.data.MilkEntry
 import com.example.data.MilkType
 import com.example.data.MonthlyCustomerStatement
@@ -41,6 +42,7 @@ data class DairyDataSnapshot(
     val payments: List<PaymentRecord> = emptyList(),
     val collections: List<MilkCollection> = emptyList(),
     val suppliers: List<MilkSupplier> = emptyList(),
+    val supplierTransactions: List<SupplierTransaction> = emptyList(),
     val rateOverrides: Map<String, Double> = emptyMap(),
     val importedRates: Map<String, Double> = emptyMap()
 ) {
@@ -181,9 +183,13 @@ class DairyViewModel(
     val uiState: StateFlow<UiState<DairyDataSnapshot>> = combine(
         coreDataFlow,
         repository.observeSuppliers(currentUserId)
-            .catch { emit(emptyList<MilkSupplier>()) }
-    ) { core, suppliers ->
-        UiState.Success(core.copy(suppliers = suppliers)) as UiState<DairyDataSnapshot>
+            .catch { emit(emptyList<MilkSupplier>()) },
+        repository.observeSupplierTransactions(currentUserId)
+            .catch { emit(emptyList<SupplierTransaction>()) }
+    ) { core, suppliers, txns ->
+        UiState.Success(
+            core.copy(suppliers = suppliers, supplierTransactions = txns)
+        ) as UiState<DairyDataSnapshot>
     }
         .catch { error ->
             val firestoreError = generateSequence(error) { it.cause }
@@ -459,7 +465,7 @@ class DairyViewModel(
         }
     }
 
-    fun addSupplier(name: String) {
+    fun addSupplier(name: String, phone: String = "") {
         val cleanName = name.trim()
         if (cleanName.isEmpty()) {
             _snackbarMessage.value = "Supplier का नाम लिखो।"
@@ -467,7 +473,7 @@ class DairyViewModel(
         }
         viewModelScope.launch {
             _isMutating.value = true
-            val result = repository.addSupplier(currentUserId, cleanName, "")
+            val result = repository.addSupplier(currentUserId, cleanName, phone.trim())
             _isMutating.value = false
             result.onSuccess {
                 _snackbarMessage.value = "Supplier जुड़ गया: $cleanName"
@@ -486,6 +492,61 @@ class DairyViewModel(
                 _snackbarMessage.value = "Supplier हटा दिया गया"
             }.onFailure { err ->
                 _snackbarMessage.value = err.localizedMessage ?: "Supplier हटाने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun addSupplierTransaction(
+        supplierName: String,
+        type: String,
+        itemName: String,
+        quantity: Double,
+        unit: String,
+        ratePerUnit: Double,
+        amount: Double,
+        paymentMode: String,
+        note: String,
+        dateKey: String,
+        isHome: Boolean
+    ) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.addSupplierTransaction(
+                userId = currentUserId,
+                supplierName = supplierName,
+                type = type,
+                itemName = itemName,
+                quantity = quantity,
+                unit = unit,
+                ratePerUnit = ratePerUnit,
+                amount = amount,
+                paymentMode = paymentMode,
+                note = note,
+                dateKey = dateKey,
+                isHome = isHome
+            )
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = when (type) {
+                    "GOODS" -> "समान दर्ज हुआ — ${DairyFormatters.formatRupees(amount)}"
+                    "ADVANCE" -> "Advance दर्ज हुआ — ${DairyFormatters.formatRupees(amount)}"
+                    else -> "Payment दर्ज हुआ — ${DairyFormatters.formatRupees(amount)}"
+                }
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "Entry दर्ज करने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun deleteSupplierTransaction(transactionId: String) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.deleteSupplierTransaction(currentUserId, transactionId)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "Entry हटाई गई"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "Entry हटाने में त्रुटि हुई।"
             }
         }
     }
