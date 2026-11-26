@@ -188,14 +188,14 @@ fun SupplierHisaabScreen(
                 if (c.balanceBefore != 0.0) {
                     appendLine("पुराना बाकी: ${DairyFormatters.formatRupees(c.balanceBefore)}")
                 }
-                if (c.goodsCycle > 0.0) appendLine("समान (खल/चारा): −${DairyFormatters.formatRupees(c.goodsCycle)}")
-                if (c.advanceCycle > 0.0) appendLine("Advance: −${DairyFormatters.formatRupees(c.advanceCycle)}")
-                if (c.paymentCycle > 0.0) appendLine("Payment दिया: −${DairyFormatters.formatRupees(c.paymentCycle)}")
+                if (c.goodsCycle > 0.0) appendLine("डेरी बाकी (समान): −${DairyFormatters.formatRupees(c.goodsCycle)}")
+                if (c.paymentCycle > 0.0) appendLine("डेरी बाकी (Payment): −${DairyFormatters.formatRupees(c.paymentCycle)}")
+                if (c.advanceCycle > 0.0) appendLine("Advance Jama: −${DairyFormatters.formatRupees(c.advanceCycle)}")
                 appendLine("———————————")
                 if (c.cycleDue >= 0.0) {
                     appendLine("कुल देना है: ${DairyFormatters.formatRupees(c.cycleDue)}")
                 } else {
-                    appendLine("Advance जमा है: ${DairyFormatters.formatRupees(-c.cycleDue)} (अगले हिसाब में कटेगा)")
+                    appendLine("डेरी बाकी: ${DairyFormatters.formatRupees(-c.cycleDue)} (अगले हिसाब में कटेगा)")
                 }
                 appendLine("— Milk Diary")
                 append("आपका विश्वास ही हमारी पहचान है")
@@ -208,14 +208,14 @@ fun SupplierHisaabScreen(
                 if (c.balanceBefore != 0.0) {
                     appendLine("Purana baaki: ${DairyFormatters.formatRupees(c.balanceBefore)}")
                 }
-                if (c.goodsCycle > 0.0) appendLine("Samaan (khal/chara): −${DairyFormatters.formatRupees(c.goodsCycle)}")
-                if (c.advanceCycle > 0.0) appendLine("Advance: −${DairyFormatters.formatRupees(c.advanceCycle)}")
-                if (c.paymentCycle > 0.0) appendLine("Payment diya: −${DairyFormatters.formatRupees(c.paymentCycle)}")
+                if (c.goodsCycle > 0.0) appendLine("Dairy Baaki (samaan): −${DairyFormatters.formatRupees(c.goodsCycle)}")
+                if (c.paymentCycle > 0.0) appendLine("Dairy Baaki (Payment): −${DairyFormatters.formatRupees(c.paymentCycle)}")
+                if (c.advanceCycle > 0.0) appendLine("Advance Jama: −${DairyFormatters.formatRupees(c.advanceCycle)}")
                 appendLine("———————————")
                 if (c.cycleDue >= 0.0) {
                     appendLine("Kul dena hai: ${DairyFormatters.formatRupees(c.cycleDue)}")
                 } else {
-                    appendLine("Advance jama hai: ${DairyFormatters.formatRupees(-c.cycleDue)} (agle hisaab me katega)")
+                    appendLine("Dairy Baaki: ${DairyFormatters.formatRupees(-c.cycleDue)} (agle hisaab me katega)")
                 }
                 appendLine("— Milk Diary")
                 append("Aapka vishwas hi hamari pehchan hai")
@@ -303,7 +303,7 @@ fun SupplierHisaabScreen(
                         ) {
                             OutlinedButton(
                                 onClick = { cycleAnchor = DairyFormatters.shiftCycleKey(cycleAnchor, -1) }
-                            ) { Text("◀ पिछला") }
+                            ) { Text("◀") }
                             Column(
                                 modifier = Modifier.weight(1f),
                                 horizontalAlignment = Alignment.CenterHorizontally
@@ -323,7 +323,7 @@ fun SupplierHisaabScreen(
                             }
                             OutlinedButton(
                                 onClick = { cycleAnchor = DairyFormatters.shiftCycleKey(cycleAnchor, 1) }
-                            ) { Text("अगला ▶") }
+                            ) { Text("▶") }
                         }
                     }
                 }
@@ -354,13 +354,13 @@ fun SupplierHisaabScreen(
                                 value = calc.milkCycle
                             )
                             if (calc.goodsCycle > 0.0) {
-                                HisaabRow(label = "समान (खल/चारा)", value = -calc.goodsCycle)
-                            }
-                            if (calc.advanceCycle > 0.0) {
-                                HisaabRow(label = "Advance दिया", value = -calc.advanceCycle)
+                                HisaabRow(label = "डेरी बाकी — समान (खल/चारा)", value = -calc.goodsCycle)
                             }
                             if (calc.paymentCycle > 0.0) {
-                                HisaabRow(label = "Payment दिया", value = -calc.paymentCycle)
+                                HisaabRow(label = "डेरी बाकी — Payment", value = -calc.paymentCycle)
+                            }
+                            if (calc.advanceCycle > 0.0) {
+                                HisaabRow(label = "Advance Jama", value = -calc.advanceCycle)
                             }
                             HorizontalDivider()
                             Row(
@@ -368,7 +368,7 @@ fun SupplierHisaabScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = if (calc.cycleDue >= 0.0) "कुल देना है" else "Advance जमा है",
+                                    text = if (calc.cycleDue >= 0.0) "कुल देना है" else "डेरी बाकी",
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.weight(1f)
@@ -381,7 +381,11 @@ fun SupplierHisaabScreen(
                                 )
                             }
                             Text(
-                                text = "आज तक कुल बाकी: ${DairyFormatters.formatRupees(calc.overall)}",
+                                text = if (calc.overall >= 0.0) {
+                                    "आज तक कुल देना है: ${DairyFormatters.formatRupees(calc.overall)}"
+                                } else {
+                                    "आज तक डेरी बाकी: ${DairyFormatters.formatRupees(-calc.overall)}"
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -474,7 +478,7 @@ fun SupplierHisaabScreen(
                             FilterChip(
                                 selected = entryType == "ADVANCE",
                                 onClick = { entryType = "ADVANCE" },
-                                label = { Text("💵 Advance") }
+                                label = { Text("💵 Advance Jama") }
                             )
                             FilterChip(
                                 selected = entryType == "PAYMENT",
@@ -662,8 +666,8 @@ fun SupplierHisaabScreen(
                                 Text(
                                     text = when (txn.type) {
                                         "GOODS" -> "📦 ${txn.itemName} — ${plainAmount(txn.quantity)} ${if (txn.unit == "KG") "किलो" else "बोरी"} × ${DairyFormatters.formatRupees(txn.ratePerUnit)}"
-                                        "ADVANCE" -> "💵 Advance (${txn.paymentMode})"
-                                        else -> "✔ Payment (${txn.paymentMode})"
+                                        "ADVANCE" -> "💵 Advance Jama (${txn.paymentMode})"
+                                        else -> "✔ डेरी बाकी — Payment (${txn.paymentMode})"
                                     },
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold
