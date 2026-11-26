@@ -12,9 +12,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ErrorOutline
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -217,25 +220,31 @@ fun WeekMilkChartCard(
 }
 
 /**
- * Branded animated splash shown briefly when the app opens:
- * the logo scales and fades in over a fresh mint-to-teal gradient.
+ * Branded animated splash: app khulte hi can jhuk kar doodh ki dhaar
+ * girata hai, phir seedha ho jata hai — neeche brand lines ke saath.
  */
 @Composable
 fun SplashOverlay(onFinished: () -> Unit) {
     val scale = remember { Animatable(0.75f) }
     val alpha = remember { Animatable(0f) }
+    val pour = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         launch { scale.animateTo(1f, animationSpec = tween(600)) }
         launch { alpha.animateTo(1f, animationSpec = tween(500)) }
-        delay(1000)
+        delay(250)
+        pour.animateTo(1f, animationSpec = tween(620))
+        delay(480)
+        pour.animateTo(0f, animationSpec = tween(400))
+        delay(220)
         onFinished()
     }
+    val stream = ((pour.value - 0.3f) / 0.7f).coerceIn(0f, 1f)
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(MeadowEmeraldContainer, MeadowEmeraldLight, MeadowEmerald)
+                    colors = listOf(Color(0xFF8ED4F7), Color(0xFF3D9ACA), Color(0xFF1F6FB2))
                 )
             ),
         contentAlignment = Alignment.Center
@@ -249,13 +258,51 @@ fun SplashOverlay(onFinished: () -> Unit) {
                 this.alpha = alpha.value
             }
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.img_milk_diary_icon_1795579553116),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(120.dp)
-                    .clip(RoundedCornerShape(28.dp))
-            )
+            Box(
+                modifier = Modifier.size(width = 200.dp, height = 182.dp),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                // Doodh ki dhaar (can jhukne par dikhti hai)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = (-27).dp, y = 90.dp)
+                        .width(9.dp)
+                        .height((66 * stream).dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.92f))
+                )
+                // Girti hui ek boond
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = (-16).dp, y = (102 + 42 * stream).dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.75f * stream))
+                )
+                // Neeche jama hota doodh
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(x = (-27).dp, y = 156.dp)
+                        .size(width = (14 + 46 * stream).dp, height = 11.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.9f * stream))
+                )
+                // Can — jhuk kar doodh daalta hai
+                Image(
+                    painter = painterResource(id = R.drawable.img_milk_diary_icon_1795579553116),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(104.dp)
+                        .graphicsLayer {
+                            rotationZ = pour.value * -26f
+                            transformOrigin = TransformOrigin(0.85f, 0.2f)
+                        }
+                        .clip(RoundedCornerShape(24.dp))
+                )
+            }
             Text(
                 text = "Milk Diary",
                 style = MaterialTheme.typography.headlineMedium,
@@ -266,6 +313,12 @@ fun SplashOverlay(onFinished: () -> Unit) {
                 text = "शुद्ध दूध • साफ हिसाब",
                 style = MaterialTheme.typography.titleSmall,
                 color = Color.White.copy(alpha = 0.88f)
+            )
+            Text(
+                text = "आपका विश्वास ही हमारी पहचान है",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = Color.White.copy(alpha = 0.95f)
             )
         }
     }
