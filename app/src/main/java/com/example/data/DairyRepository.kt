@@ -596,6 +596,80 @@ class DairyRepository(
         }
     }
 
+    // --- SUPPLIERS (line-by-line collection ke liye gharon ki list) ---
+
+    fun observeSuppliers(userId: String): Flow<List<MilkSupplier>> = flow {
+        val uid = requireUserId(userId)
+        val path = "users/$uid/suppliers"
+        emitAll(
+            db.collection("users").document(uid).collection("suppliers")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        MilkSupplier::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedWith(
+                        compareBy<MilkSupplier> { it.sortOrder }
+                            .thenBy { it.name.lowercase() }
+                    )
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == uid) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun addSupplier(userId: String, name: String, phone: String): Result<Unit> {
+        var docPath = "users/$userId/suppliers"
+        return try {
+            val uid = requireUserId(userId)
+            val cleanName = name.trim()
+            require(cleanName.length in 1..80) { "सप्लायर का नाम मान्य नहीं है।" }
+            val docRef = db.collection("users").document(uid).collection("suppliers").document()
+            docPath = docRef.path
+            val payload = mapOf(
+                "userId" to uid,
+                "name" to cleanName,
+                "phone" to phone.trim(),
+                "sortOrder" to System.currentTimeMillis(),
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            docRef.set(payload).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteSupplier(userId: String, supplierId: String): Result<Unit> {
+        var docPath = "users/$userId/suppliers/$supplierId"
+        return try {
+            val uid = requireUserId(userId)
+            val docRef = db.collection("users").document(uid)
+                .collection("suppliers").document(supplierId)
+            docPath = docRef.path
+            docRef.delete().await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
+    }
+
     // --- RATE CHART OVERRIDES (user-edited rates) ---
 
     fun observeRateOverrides(userId: String): Flow<Map<String, Double>> = flow {
