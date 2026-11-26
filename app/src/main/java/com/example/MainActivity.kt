@@ -107,6 +107,7 @@ import com.example.ui.screens.RateChartScreen
 import com.example.ui.screens.ReportsScreen
 import com.example.ui.screens.TodayScreen
 import com.example.update.AppUpdate
+import kotlinx.coroutines.launch
 import com.example.ui.theme.MilkDiaryTheme
 import com.example.viewmodel.DairyDataSnapshot
 import com.example.viewmodel.DairyViewModel
