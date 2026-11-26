@@ -68,6 +68,7 @@ fun DairyDashboardScreen(
     modifier: Modifier = Modifier,
     onOpenCollection: () -> Unit = {},
     onOpenRateChart: () -> Unit = {},
+    onOpenSupplierHisaab: () -> Unit = {},
     onCheckUpdate: () -> Unit = {}
 ) {
     val todayKey = remember { DairyFormatters.todayDateKey() }
@@ -196,6 +197,12 @@ fun DairyDashboardScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Rate List देखो / बदलो")
+                    }
+                    OutlinedButton(
+                        onClick = onOpenSupplierHisaab,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Supplier Hisaab — 10 दिन का हिसाब")
                     }
                     OutlinedButton(
                         onClick = onCheckUpdate,
