@@ -497,4 +497,179 @@ class DairyRepository(
             Result.failure(e)
         }
     }
+
+    // --- COLLECTIONS (supplier side, FAT/SNF) ---
+
+    fun observeCollections(userId: String): Flow<List<MilkCollection>> = flow {
+        val uid = requireUserId(userId)
+        val path = "users/$uid/collections"
+        emitAll(
+            db.collection("users").document(uid).collection("collections")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        MilkCollection::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedWith(
+                        compareByDescending<MilkCollection> { it.dateKey }
+                            .thenByDescending { it.createdAt?.seconds ?: 0L }
+                    )
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == uid) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun addCollection(
+        userId: String,
+        supplierName: String,
+        sampleNo: String,
+        dateKey: String,
+        shift: DeliveryShift,
+        quantityLiters: Double,
+        fat: Double,
+        snf: Double,
+        ratePerLiter: Double,
+        totalAmount: Double
+    ): Result<Unit> {
+        var docPath = "users/$userId/collections"
+        return try {
+            val uid = requireUserId(userId)
+            val cleanName = supplierName.trim()
+            val cleanSample = sampleNo.trim()
+            require(cleanName.length in 1..80) { "सप्लायर का नाम मान्य नहीं है।" }
+            require(cleanSample.length <= 20) { "सैंपल नंबर अधिकतम 20 अक्षरों का हो सकता है।" }
+            require(isValidDateKey(dateKey)) { "तारीख का प्रारूप सही नहीं है।" }
+            require(quantityLiters > 0.0 && quantityLiters <= 100000.0) { "दूध की मात्रा सही नहीं है।" }
+            require(fat in 1.0..15.0) { "FAT सही नहीं है।" }
+            require(snf in 1.0..15.0) { "SNF सही नहीं है।" }
+
+            val docRef = db.collection("users").document(uid).collection("collections").document()
+            docPath = docRef.path
+            val payload = mapOf(
+                "userId" to uid,
+                "supplierName" to cleanName,
+                "sampleNo" to cleanSample,
+                "dateKey" to dateKey,
+                "shift" to shift.name,
+                "quantityLiters" to DairyFormatters.roundTwoDecimals(quantityLiters),
+                "fat" to fat,
+                "snf" to snf,
+                "ratePerLiter" to DairyFormatters.roundTwoDecimals(ratePerLiter),
+                "totalAmount" to DairyFormatters.roundTwoDecimals(totalAmount),
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            docRef.set(payload).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteCollection(userId: String, collectionId: String): Result<Unit> {
+        var docPath = "users/$userId/collections/$collectionId"
+        return try {
+            val uid = requireUserId(userId)
+            val docRef = db.collection("users").document(uid)
+                .collection("collections").document(collectionId)
+            docPath = docRef.path
+            docRef.delete().await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    // --- RATE CHART OVERRIDES (user-edited rates) ---
+
+    fun observeRateOverrides(userId: String): Flow<Map<String, Double>> = flow {
+        val uid = requireUserId(userId)
+        val path = "users/$uid/rate_overrides"
+        emitAll(
+            db.collection("users").document(uid).collection("rate_overrides")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.documents.mapNotNull { doc ->
+                        val rate = doc.getDouble("rate") ?: return@mapNotNull null
+                        doc.id to rate
+                    }.toMap()
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == uid) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun saveRateOverride(
+        userId: String,
+        fat: Double,
+        snf: Double,
+        rate: Double
+    ): Result<Unit> {
+        val key = RateChart.key(fat, snf)
+        var docPath = "users/$userId/rate_overrides/$key"
+        return try {
+            val uid = requireUserId(userId)
+            require(rate > 0.0 && rate <= 1000.0) { "रेट सही नहीं है।" }
+            val docRef = db.collection("users").document(uid)
+                .collection("rate_overrides").document(key)
+            docPath = docRef.path
+            docRef.set(
+                mapOf(
+                    "fat" to fat,
+                    "snf" to snf,
+                    "rate" to DairyFormatters.roundTwoDecimals(rate),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteRateOverride(userId: String, fat: Double, snf: Double): Result<Unit> {
+        val key = RateChart.key(fat, snf)
+        var docPath = "users/$userId/rate_overrides/$key"
+        return try {
+            val uid = requireUserId(userId)
+            val docRef = db.collection("users").document(uid)
+                .collection("rate_overrides").document(key)
+            docPath = docRef.path
+            docRef.delete().await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
+    }
 }
