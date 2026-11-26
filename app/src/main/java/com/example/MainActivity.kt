@@ -564,7 +564,7 @@ private fun MilkDiaryMainShell(
                             popExitTransition = { fadeOut(animationSpec = tween(200)) },
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(if (isPrimaryScreen) innerPadding else androidx.compose.foundation.layout.PaddingValues(0.dp))
+                                .padding(innerPadding)
                         ) {
                             composable(ROUTE_TODAY) {
                                 TodayScreen(
@@ -674,6 +674,9 @@ private fun MilkDiaryMainShell(
                                         )
                                     },
                                     onDeleteCollection = viewModel::deleteCollectionEntry,
+                                    onUpdateFatSnf = { colEntry, fVal, sVal ->
+                                        viewModel.updateCollectionFatSnf(colEntry, fVal, sVal)
+                                    },
                                     onAddSupplier = { sName, sPhone ->
                                         viewModel.addSupplier(sName, sPhone)
                                     },
