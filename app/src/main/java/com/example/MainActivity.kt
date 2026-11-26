@@ -1,6 +1,10 @@
 package com.example
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -145,6 +149,20 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        com.example.notifications.CollectionReminders.createChannel(this)
+        com.example.notifications.CollectionReminders.scheduleAll(this)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                9001
+            )
+        }
         setContent {
             MilkDiaryTheme {
                 AppContent()
@@ -650,7 +668,9 @@ private fun MilkDiaryMainShell(
                                             totalAmount = total
                                         )
                                     },
-                                    onDeleteCollection = viewModel::deleteCollectionEntry
+                                    onDeleteCollection = viewModel::deleteCollectionEntry,
+                                    onAddSupplier = viewModel::addSupplier,
+                                    onDeleteSupplier = viewModel::deleteSupplier
                                 )
                             }
 
