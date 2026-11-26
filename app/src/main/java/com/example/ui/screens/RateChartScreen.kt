@@ -103,6 +103,11 @@ fun RateChartScreen(
         scope.launch {
             try {
                 val text = withContext(Dispatchers.IO) {
+                    try {
+                        com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(context)
+                    } catch (t: Throwable) {
+                        throw IllegalStateException("PDF engine shuru नहीं हो पाया")
+                    }
                     val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
                         ?: throw IllegalStateException("File खुल नहीं पाई")
                     PDDocument.load(bytes).use { doc ->
