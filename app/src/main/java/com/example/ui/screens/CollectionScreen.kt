@@ -20,9 +20,11 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +59,8 @@ fun CollectionScreen(
         totalAmount: Double
     ) -> Unit,
     onDeleteCollection: (String) -> Unit,
+    onAddSupplier: (String) -> Unit,
+    onDeleteSupplier: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var supplierName by remember { mutableStateOf("") }
@@ -82,6 +86,56 @@ fun CollectionScreen(
     }
     val todayLiters = DairyFormatters.roundTwoDecimals(todayCollections.sumOf { it.quantityLiters })
     val todayAmount = DairyFormatters.roundTwoDecimals(todayCollections.sumOf { it.totalAmount })
+
+    // --- Supplier search (naam likhte hi detail) ---
+    var searchQuery by remember { mutableStateOf("") }
+    val searchResults = remember(searchQuery, snapshot.suppliers, snapshot.supplierSummaries, snapshot.collections) {
+        val q = searchQuery.trim().lowercase()
+        if (q.isEmpty()) {
+            emptyList()
+        } else {
+            val names = LinkedHashSet<String>()
+            snapshot.suppliers.forEach { names.add(it.name) }
+            snapshot.supplierSummaries.forEach { names.add(it.supplierName) }
+            names.filter { it.lowercase().contains(q) }.map { name ->
+                val summary = snapshot.supplierSummaries.firstOrNull { it.supplierName == name }
+                val last = snapshot.collections
+                    .filter { it.supplierName == name }
+                    .maxByOrNull { it.createdAt?.time ?: 0L }
+                Triple(name, summary, last)
+            }
+        }
+    }
+
+    // --- Line mode (ghar-ghar collection, automatic next) ---
+    var newSupplierName by remember { mutableStateOf("") }
+    var lineActive by remember { mutableStateOf(false) }
+    var lineIndex by remember { mutableStateOf(0) }
+    var lineFinished by remember { mutableStateOf(false) }
+    var lineSavedCount by remember { mutableStateOf(0) }
+    var lineLiters by remember { mutableStateOf(0.0) }
+    var lineAmount by remember { mutableStateOf(0.0) }
+    val roster = snapshot.suppliers
+
+    fun advanceLine() {
+        if (lineIndex < roster.size - 1) {
+            lineIndex += 1
+        } else {
+            lineActive = false
+            lineFinished = true
+        }
+    }
+
+    LaunchedEffect(lineActive, lineIndex) {
+        val sup = if (lineActive) roster.getOrNull(lineIndex) else null
+        if (sup != null) {
+            supplierName = sup.name
+            sampleNo = ""
+            qtyText = ""
+            fatText = ""
+            snfText = ""
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         Row(
@@ -116,6 +170,197 @@ fun CollectionScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item(key = "supplier_search") {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Supplier खोजो",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            label = { Text("नाम लिखो — detail तुरंत आ जाएगी") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (searchQuery.isNotBlank()) {
+                            if (searchResults.isEmpty()) {
+                                Text(
+                                    text = "इस नाम का कोई supplier नहीं मिला।",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                searchResults.forEach { (name, summary, last) ->
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = name,
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = FontWeight.SemiBold,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            OutlinedButton(onClick = {
+                                                supplierName = name
+                                                searchQuery = ""
+                                            }) {
+                                                Text("Entry भरो")
+                                            }
+                                        }
+                                        if (summary != null) {
+                                            Text(
+                                                text = "कुल: ${summary.entriesCount} बार • " +
+                                                    "${DairyFormatters.formatLiters(summary.totalLiters)} • " +
+                                                    DairyFormatters.formatRupees(summary.totalAmount),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                        if (last != null) {
+                                            Text(
+                                                text = "आखिरी: ${DairyFormatters.formatShortDateHi(last.dateKey)} • " +
+                                                    "FAT ${last.fat} / SNF ${last.snf} • " +
+                                                    "${DairyFormatters.formatRupees(last.ratePerLiter)}/लीटर",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item(key = "supplier_line") {
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "🚶 Line — घर-घर Collection",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        when {
+                            lineFinished -> {
+                                Text(
+                                    text = "✅ Line पूरी हो गई! $lineSavedCount घरों से दूध लिया • " +
+                                        "कुल ${DairyFormatters.formatLiters(lineLiters)} • " +
+                                        DairyFormatters.formatRupees(lineAmount),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                OutlinedButton(onClick = { lineFinished = false }) {
+                                    Text("ठीक है")
+                                }
+                            }
+                            lineActive -> {
+                                Text(
+                                    text = "घर ${lineIndex + 1} / ${roster.size}: " +
+                                        (roster.getOrNull(lineIndex)?.name ?: ""),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "नीचे form में दूध भरो — 'दूध दर्ज करो' दबाते ही अगला घर अपने आप आ जाएगा। " +
+                                        "सैंपल नंबर बैग पर लिखा होता है, वही भरना।",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedButton(onClick = { advanceLine() }) {
+                                        Text("⏭ Skip — अगला घर")
+                                    }
+                                    OutlinedButton(onClick = { lineActive = false }) {
+                                        Text("✖ Line बंद करो")
+                                    }
+                                }
+                            }
+                            else -> {
+                                if (roster.isEmpty()) {
+                                    Text(
+                                        text = "पहले अपने supplier (घर) एक-एक करके जोड़ो — फिर line शुरू करके " +
+                                            "एक के बाद एक घर का दूध भरते जाओ, अगला घर अपने आप आएगा।",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    roster.forEachIndexed { index, sup ->
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "${index + 1}. ${sup.name}",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            IconButton(onClick = { onDeleteSupplier(sup.id) }) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Delete,
+                                                    contentDescription = "हटाओ",
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    OutlinedTextField(
+                                        value = newSupplierName,
+                                        onValueChange = { newSupplierName = it },
+                                        label = { Text("नया supplier / घर") },
+                                        singleLine = true,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedButton(
+                                        onClick = {
+                                            if (newSupplierName.isNotBlank()) {
+                                                onAddSupplier(newSupplierName.trim())
+                                                newSupplierName = ""
+                                            }
+                                        }
+                                    ) {
+                                        Text("जोड़ो")
+                                    }
+                                }
+                                Button(
+                                    onClick = {
+                                        lineSavedCount = 0
+                                        lineLiters = 0.0
+                                        lineAmount = 0.0
+                                        lineIndex = 0
+                                        lineFinished = false
+                                        lineActive = true
+                                    },
+                                    enabled = roster.isNotEmpty(),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("🚶 Line शुरू करो")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             item(key = "collection_form") {
                 Card(
                     shape = RoundedCornerShape(20.dp),
@@ -215,6 +460,12 @@ fun CollectionScreen(
                                     rate,
                                     total
                                 )
+                                if (lineActive) {
+                                    lineSavedCount += 1
+                                    lineLiters = DairyFormatters.roundTwoDecimals(lineLiters + qty)
+                                    lineAmount = DairyFormatters.roundTwoDecimals(lineAmount + total)
+                                    advanceLine()
+                                }
                                 sampleNo = ""
                                 qtyText = ""
                                 fatText = ""
