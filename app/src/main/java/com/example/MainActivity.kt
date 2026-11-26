@@ -144,7 +144,6 @@ private val primaryDestinations = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(this)
         enableEdgeToEdge()
         setContent {
             MilkDiaryTheme {
@@ -252,11 +251,15 @@ private fun MilkDiaryMainShell(
     }
 
     LaunchedEffect(Unit) {
-        val info = AppUpdate.fetchLatest()
-        if (info != null &&
-            AppUpdate.isNewer(info.versionName, AppUpdate.currentVersionName(context))
-        ) {
-            pendingUpdate = info
+        try {
+            val info = AppUpdate.fetchLatest()
+            if (info != null &&
+                AppUpdate.isNewer(info.versionName, AppUpdate.currentVersionName(context))
+            ) {
+                pendingUpdate = info
+            }
+        } catch (t: Throwable) {
+            // Update check kabhi bhi app ko crash nahi karna chahiye
         }
     }
 
