@@ -65,7 +65,9 @@ private data class CustomerHisaabRow(
 @Composable
 fun DairyDashboardScreen(
     snapshot: DairyDataSnapshot,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenCollection: () -> Unit = {},
+    onOpenRateChart: () -> Unit = {}
 ) {
     val todayKey = remember { DairyFormatters.todayDateKey() }
 
@@ -177,6 +179,23 @@ fun DairyDashboardScreen(
             } else {
                 items(items = rows, key = { "hisaab_${it.summary.customer.id}" }) { row ->
                     CustomerHisaabCard(row = row)
+                }
+            }
+
+            item(key = "dash_collection") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Button(
+                        onClick = onOpenCollection,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "दूध Collection — FAT/SNF से रेट लगाओ")
+                    }
+                    OutlinedButton(
+                        onClick = onOpenRateChart,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "Rate List देखो / बदलो")
+                    }
                 }
             }
 
