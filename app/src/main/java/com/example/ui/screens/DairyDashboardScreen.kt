@@ -29,6 +29,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -45,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.CustomerAccountSummary
 import com.example.data.DairyFormatters
+import com.example.data.DeliveryShift
 import com.example.data.MilkEntry
 import com.example.data.MilkType
 import com.example.data.PaymentRecord
@@ -211,6 +213,10 @@ fun DairyDashboardScreen(
                         Text(text = "App Update देखो")
                     }
                 }
+            }
+
+            item(key = "dash_daily_summary") {
+                DailySummaryCard(snapshot = snapshot)
             }
 
             item(key = "dash_export") {
@@ -566,5 +572,99 @@ private fun CustomerHisaabCard(row: CustomerHisaabRow) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DailySummaryCard(snapshot: DairyDataSnapshot) {
+    var dateKey by remember { mutableStateOf(DairyFormatters.todayDateKey()) }
+    val dayCollections = remember(snapshot.collections, dateKey) {
+        snapshot.collections.filter { it.dateKey == dateKey }
+    }
+    val collLiters = DairyFormatters.roundTwoDecimals(dayCollections.sumOf { it.quantityLiters })
+    val collAmount = DairyFormatters.roundTwoDecimals(dayCollections.sumOf { it.totalAmount })
+    val morningLiters = dayCollections
+        .filter { it.parsedShift == DeliveryShift.MORNING }.sumOf { it.quantityLiters }
+    val eveningLiters = dayCollections
+        .filter { it.parsedShift == DeliveryShift.EVENING }.sumOf { it.quantityLiters }
+    val pendingCount = dayCollections.count { it.fat == 0.0 }
+    val daySales = remember(snapshot.milkEntries, dateKey) {
+        snapshot.milkEntries.filter { it.dateKey == dateKey && !it.absent }
+    }
+    val saleLiters = DairyFormatters.roundTwoDecimals(daySales.sumOf { it.quantityLiters })
+    val saleAmount = DairyFormatters.roundTwoDecimals(daySales.sumOf { it.totalAmount })
+    val baakiLiters = DairyFormatters.roundTwoDecimals(collLiters - saleLiters)
+
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Roz ka Summary",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedButton(onClick = { dateKey = DairyFormatters.shiftDateKey(dateKey, -1) }) {
+                    Text("◀")
+                }
+                Text(
+                    text = DairyFormatters.formatShortDateHi(dateKey),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                OutlinedButton(onClick = { dateKey = DairyFormatters.shiftDateKey(dateKey, 1) }) {
+                    Text("▶")
+                }
+            }
+            SummaryLine(
+                label = "आया दूध (सुबह ${DairyFormatters.formatLiters(morningLiters)} + शाम ${DairyFormatters.formatLiters(eveningLiters)})",
+                value = "${DairyFormatters.formatLiters(collLiters)} • ${DairyFormatters.formatRupees(collAmount)}"
+            )
+            SummaryLine(
+                label = "Local sale (ग्राहक बिक्री)",
+                value = "${DairyFormatters.formatLiters(saleLiters)} • ${DairyFormatters.formatRupees(saleAmount)}"
+            )
+            HorizontalDivider()
+            SummaryLine(
+                label = "बाकी दूध (plant को गया)",
+                value = DairyFormatters.formatLiters(baakiLiters)
+            )
+            if (pendingCount > 0) {
+                Text(
+                    text = "⏳ $pendingCount sample का FAT/SNF बाकी है — rate भरते ही रकम जुड़ जाएगी।",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SummaryLine(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
