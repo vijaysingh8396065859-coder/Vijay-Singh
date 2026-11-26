@@ -67,7 +67,8 @@ fun DairyDashboardScreen(
     snapshot: DairyDataSnapshot,
     modifier: Modifier = Modifier,
     onOpenCollection: () -> Unit = {},
-    onOpenRateChart: () -> Unit = {}
+    onOpenRateChart: () -> Unit = {},
+    onCheckUpdate: () -> Unit = {}
 ) {
     val todayKey = remember { DairyFormatters.todayDateKey() }
 
@@ -195,6 +196,12 @@ fun DairyDashboardScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(text = "Rate List देखो / बदलो")
+                    }
+                    OutlinedButton(
+                        onClick = onCheckUpdate,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "App Update देखो")
                     }
                 }
             }
