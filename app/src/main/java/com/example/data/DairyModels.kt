@@ -255,6 +255,16 @@ data class MilkCollection(
     val parsedShift: DeliveryShift get() = DeliveryShift.fromName(shift)
 }
 
+data class MilkSupplier(
+    val id: String = "",
+    val userId: String = "",
+    val name: String = "",
+    val phone: String = "",
+    val sortOrder: Long = 0,
+    @ServerTimestamp val createdAt: Date? = null,
+    @ServerTimestamp val updatedAt: Date? = null
+)
+
 data class SupplierSummary(
     val supplierName: String,
     val totalLiters: Double,
