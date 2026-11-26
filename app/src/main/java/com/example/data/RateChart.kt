@@ -100,20 +100,36 @@ object RateChart {
         return DEFAULTS[fi][si]
     }
 
+    /** Ek cell ka lagu rate: pehle user ki edit, phir user ki daali hui list, phir default list. */
+    fun effectiveRate(
+        fat: Double,
+        snf: Double,
+        imported: Map<String, Double>,
+        overrides: Map<String, Double>
+    ): Double? {
+        val k = key(fat, snf)
+        return overrides[k] ?: imported[k] ?: defaultRate(fat, snf)
+    }
+
     /**
-     * Final rate for a sample: chart lookup with user overrides, chart-edge clamping,
-     * and the low-SNF deduction when SNF < 8.0 (rate taken from the SNF 8.0 column minus katauti).
+     * Final rate for a sample: chart lookup (edit > imported list > default list), chart-edge
+     * clamping, and the low-SNF deduction when SNF < 8.0 (SNF 8.0 column rate minus katauti).
      */
-    fun rateFor(fat: Double, snf: Double, overrides: Map<String, Double>): Double {
+    fun rateFor(
+        fat: Double,
+        snf: Double,
+        imported: Map<String, Double>,
+        overrides: Map<String, Double>
+    ): Double {
         val f = round1(fat).coerceIn(FAT_VALUES.first(), FAT_VALUES.last())
         if (snf < 8.0) {
-            val base = overrides[key(f, 8.0)] ?: defaultRate(f, 8.0) ?: 0.0
+            val base = effectiveRate(f, 8.0, imported, overrides) ?: 0.0
             val pointsBelow = ((8.0 - snf) * 10).roundToInt().coerceAtLeast(0)
             return DairyFormatters.roundTwoDecimals(
                 (base - LOW_SNF_DEDUCTION_PER_POINT * pointsBelow).coerceAtLeast(0.0)
             )
         }
         val s = round1(snf).coerceIn(SNF_VALUES.first(), SNF_VALUES.last())
-        return overrides[key(f, s)] ?: defaultRate(f, s) ?: 0.0
+        return effectiveRate(f, s, imported, overrides) ?: 0.0
     }
 }
