@@ -103,6 +103,7 @@ import com.example.ui.components.CustomerFormDialog
 import com.example.ui.components.MilkEntryFormDialog
 import com.example.ui.components.PaymentFormDialog
 import com.example.ui.screens.CollectionScreen
+import com.example.ui.screens.SupplierHisaabScreen
 import com.example.ui.screens.CustomerDetailScreen
 import com.example.ui.screens.DairyDashboardScreen
 import com.example.ui.screens.CustomersScreen
@@ -128,6 +129,7 @@ const val ROUTE_PAYMENTS = "payments"
 const val ROUTE_REPORTS = "reports"
 const val ROUTE_RATE_CHART = "rate_chart"
 const val ROUTE_COLLECTION = "collection"
+const val ROUTE_SUPPLIER_HISAAB = "supplier_hisaab"
 const val ROUTE_CUSTOMER_DETAIL = "customer_detail/{customerId}"
 
 private data class NavDestinationItem(
@@ -630,6 +632,9 @@ private fun MilkDiaryMainShell(
                                     onOpenRateChart = {
                                         navController.navigate(ROUTE_RATE_CHART)
                                     },
+                                    onOpenSupplierHisaab = {
+                                        navController.navigate(ROUTE_SUPPLIER_HISAAB)
+                                    },
                                     onCheckUpdate = {
                                         scope.launch {
                                             val info = AppUpdate.fetchLatest()
@@ -669,8 +674,33 @@ private fun MilkDiaryMainShell(
                                         )
                                     },
                                     onDeleteCollection = viewModel::deleteCollectionEntry,
-                                    onAddSupplier = viewModel::addSupplier,
+                                    onAddSupplier = { sName, sPhone ->
+                                        viewModel.addSupplier(sName, sPhone)
+                                    },
                                     onDeleteSupplier = viewModel::deleteSupplier
+                                )
+                            }
+
+                            composable(ROUTE_SUPPLIER_HISAAB) {
+                                SupplierHisaabScreen(
+                                    snapshot = snapshot,
+                                    onBack = { navController.popBackStack() },
+                                    onAddTransaction = { sName, sType, sItem, sQty, sUnit, sRate, sAmount, sMode, sNote, sDate, sHome ->
+                                        viewModel.addSupplierTransaction(
+                                            supplierName = sName,
+                                            type = sType,
+                                            itemName = sItem,
+                                            quantity = sQty,
+                                            unit = sUnit,
+                                            ratePerUnit = sRate,
+                                            amount = sAmount,
+                                            paymentMode = sMode,
+                                            note = sNote,
+                                            dateKey = sDate,
+                                            isHome = sHome
+                                        )
+                                    },
+                                    onDeleteTransaction = viewModel::deleteSupplierTransaction
                                 )
                             }
 
