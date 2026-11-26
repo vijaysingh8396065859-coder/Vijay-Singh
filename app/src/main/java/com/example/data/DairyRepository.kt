@@ -670,6 +670,105 @@ class DairyRepository(
         }
     }
 
+    // --- SUPPLIER TRANSACTIONS (hisaab: samaan / advance / payment) ---
+
+    fun observeSupplierTransactions(userId: String): Flow<List<SupplierTransaction>> = flow {
+        val uid = requireUserId(userId)
+        val path = "users/$uid/supplier_transactions"
+        emitAll(
+            db.collection("users").document(uid).collection("supplier_transactions")
+                .snapshots()
+                .map { snapshot ->
+                    snapshot.toObjects(
+                        SupplierTransaction::class.java,
+                        DocumentSnapshot.ServerTimestampBehavior.ESTIMATE
+                    ).sortedWith(
+                        compareByDescending<SupplierTransaction> { it.dateKey }
+                            .thenByDescending { it.createdAt?.seconds ?: 0L }
+                    )
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == uid) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun addSupplierTransaction(
+        userId: String,
+        supplierName: String,
+        type: String,
+        itemName: String,
+        quantity: Double,
+        unit: String,
+        ratePerUnit: Double,
+        amount: Double,
+        paymentMode: String,
+        note: String,
+        dateKey: String,
+        isHome: Boolean
+    ): Result<Unit> {
+        var docPath = "users/$userId/supplier_transactions"
+        return try {
+            val uid = requireUserId(userId)
+            val cleanName = supplierName.trim()
+            require(cleanName.length in 1..80) { "Supplier का नाम मान्य नहीं है।" }
+            require(type in listOf("GOODS", "ADVANCE", "PAYMENT")) { "Entry की किस्म सही नहीं है।" }
+            require(amount > 0.0 && amount <= 10000000.0) { "रकम सही नहीं है।" }
+            require(isValidDateKey(dateKey)) { "तारीख का प्रारूप सही नहीं है।" }
+            val docRef = db.collection("users").document(uid)
+                .collection("supplier_transactions").document()
+            docPath = docRef.path
+            val payload = mapOf(
+                "userId" to uid,
+                "supplierName" to cleanName,
+                "type" to type,
+                "itemName" to itemName.trim(),
+                "quantity" to quantity,
+                "unit" to unit,
+                "ratePerUnit" to DairyFormatters.roundTwoDecimals(ratePerUnit),
+                "amount" to DairyFormatters.roundTwoDecimals(amount),
+                "paymentMode" to paymentMode,
+                "note" to note.trim(),
+                "dateKey" to dateKey,
+                "isHome" to isHome,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "updatedAt" to FieldValue.serverTimestamp()
+            )
+            docRef.set(payload).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteSupplierTransaction(userId: String, transactionId: String): Result<Unit> {
+        var docPath = "users/$userId/supplier_transactions/$transactionId"
+        return try {
+            val uid = requireUserId(userId)
+            val docRef = db.collection("users").document(uid)
+                .collection("supplier_transactions").document(transactionId)
+            docPath = docRef.path
+            docRef.delete().await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
+    }
+
     // --- RATE CHART OVERRIDES (user-edited rates) ---
 
     fun observeRateOverrides(userId: String): Flow<Map<String, Double>> = flow {
