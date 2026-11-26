@@ -40,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.data.DairyFormatters
+import com.example.ui.sheets.HisaabSheetImage
+import com.example.ui.sheets.SheetRow
 import com.example.viewmodel.DairyDataSnapshot
 import java.net.URLEncoder
 
@@ -441,6 +443,56 @@ fun SupplierHisaabScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text("📤 WhatsApp पर Sheet भेजो")
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    val c = calc
+                                    val rows = buildList {
+                                        if (c.balanceBefore != 0.0) {
+                                            add(SheetRow("पुराना बाकी", DairyFormatters.formatRupees(c.balanceBefore)))
+                                        }
+                                        add(
+                                            SheetRow(
+                                                "दूध (${DairyFormatters.formatLiters(c.milkCycleLiters)})",
+                                                DairyFormatters.formatRupees(c.milkCycle)
+                                            )
+                                        )
+                                        if (c.goodsCycle > 0.0) {
+                                            add(SheetRow("डेरी बाकी (समान)", "−${DairyFormatters.formatRupees(c.goodsCycle)}", true))
+                                        }
+                                        if (c.paymentCycle > 0.0) {
+                                            add(SheetRow("डेरी बाकी (Payment)", "−${DairyFormatters.formatRupees(c.paymentCycle)}", true))
+                                        }
+                                        if (c.advanceCycle > 0.0) {
+                                            add(SheetRow("Advance Jama", "−${DairyFormatters.formatRupees(c.advanceCycle)}", true))
+                                        }
+                                    }
+                                    val bmp = HisaabSheetImage.createSheetBitmap(
+                                        supplierName = supplier,
+                                        cycleText = "${DairyFormatters.formatShortDateHi(cycleStart)} से ${DairyFormatters.formatShortDateHi(cycleEnd)} तक",
+                                        rows = rows,
+                                        totalLabel = if (c.cycleDue >= 0.0) "कुल देना है" else "डेरी बाकी",
+                                        totalText = DairyFormatters.formatRupees(kotlin.math.abs(c.cycleDue)),
+                                        noteText = if (sheetLang == "HINDI") {
+                                            "नमस्ते जी 🙏 ऊपर आपका 10 दिन का पूरा हिसाब है। कोई गलती लगे या कोई बात हो तो बेझिझक बताइएगा। धन्यवाद!"
+                                        } else {
+                                            "Namaste ji 🙏 Upar aapka 10 din ka pura hisaab hai. Koi galti lage ya koi baat ho to bejhijhak bataiyega. Dhanyavaad!"
+                                        }
+                                    )
+                                    val phone = snapshot.suppliers
+                                        .firstOrNull { it.name == supplier }?.phone
+                                        ?.filter { ch -> ch.isDigit() }
+                                        .orEmpty()
+                                    val caption = if (sheetLang == "HINDI") {
+                                        "नमस्ते $supplier जी 🙏 आपका 10 दिन का हिसाब भेजा है। — Milk Diary"
+                                    } else {
+                                        "Namaste $supplier ji 🙏 Aapka 10 din ka hisaab bheja hai. — Milk Diary"
+                                    }
+                                    HisaabSheetImage.shareSheet(context, bmp, supplier, phone, caption)
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("📄 Sheet ki Photo bhejo (proper sheet)")
                             }
                             Text(
                                 text = "Sheet तैयार होकर WhatsApp खुल जाएगा — बस Send दबाना है।",
