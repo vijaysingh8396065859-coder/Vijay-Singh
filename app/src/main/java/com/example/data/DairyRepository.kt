@@ -672,4 +672,77 @@ class DairyRepository(
             Result.failure(e)
         }
     }
+
+    // --- IMPORTED RATE CHART (user ki daali hui poori list) ---
+
+    fun observeImportedChart(userId: String): Flow<Map<String, Double>> = flow {
+        val uid = requireUserId(userId)
+        val path = "users/$uid/rate_chart/current"
+        emitAll(
+            db.collection("users").document(uid).collection("rate_chart").document("current")
+                .snapshots()
+                .map { doc ->
+                    val raw = doc.get("rates") as? Map<*, *> ?: emptyMap<Any, Any>()
+                    raw.mapNotNull { (k, v) ->
+                        val key = k as? String ?: return@mapNotNull null
+                        val value = (v as? Number)?.toDouble() ?: return@mapNotNull null
+                        key to value
+                    }.toMap()
+                }
+                .catch { error ->
+                    val firestoreError = generateSequence(error) { it.cause }
+                        .filterIsInstance<FirebaseFirestoreException>()
+                        .firstOrNull()
+                    if (firestoreError == null && error is CancellationException) throw error
+                    val exceptionToLog = firestoreError ?: (error as? Exception)
+                    if (exceptionToLog != null && auth.currentUser?.uid == uid) {
+                        handleFirestoreError(exceptionToLog, OperationType.LIST, path)
+                    }
+                    throw error
+                }
+        )
+    }
+
+    suspend fun saveImportedChart(
+        userId: String,
+        rates: Map<String, Double>,
+        sourceName: String
+    ): Result<Unit> {
+        val docPath = "users/$userId/rate_chart/current"
+        return try {
+            val uid = requireUserId(userId)
+            require(rates.size >= 20) { "लिस्ट में बहुत कम रेट मिले।" }
+            val docRef = db.collection("users").document(uid)
+                .collection("rate_chart").document("current")
+            docRef.set(
+                mapOf(
+                    "rates" to rates,
+                    "source" to sourceName.take(120),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteImportedChart(userId: String): Result<Unit> {
+        val docPath = "users/$userId/rate_chart/current"
+        return try {
+            val uid = requireUserId(userId)
+            val docRef = db.collection("users").document(uid)
+                .collection("rate_chart").document("current")
+            docRef.delete().await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.DELETE, docPath)
+            Result.failure(e)
+        }
+    }
 }
