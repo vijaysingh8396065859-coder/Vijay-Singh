@@ -551,6 +551,30 @@ class DairyViewModel(
         }
     }
 
+    fun updateCollectionFatSnf(collection: MilkCollection, fat: Double, snf: Double) {
+        val snapshotNow = (uiState.value as? UiState.Success)?.data ?: return
+        val rate = RateChart.rateFor(fat, snf, snapshotNow.importedRates, snapshotNow.rateOverrides)
+        val amount = DairyFormatters.roundTwoDecimals(rate * collection.quantityLiters)
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.updateCollectionFatSnf(
+                userId = currentUserId,
+                collectionId = collection.id,
+                fat = fat,
+                snf = snf,
+                ratePerLiter = rate,
+                totalAmount = amount
+            )
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value =
+                    "${collection.supplierName} का rate लग गया — ${DairyFormatters.formatRupees(amount)}"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "FAT/SNF भरने में त्रुटि हुई।"
+            }
+        }
+    }
+
     fun deleteCollectionEntry(collectionId: String) {
         viewModelScope.launch {
             _isMutating.value = true
