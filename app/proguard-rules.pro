@@ -22,3 +22,8 @@
 
 # Milk Diary: Firestore maps these data classes by reflection - never shrink/obfuscate them.
 -keep class com.example.data.** { *; }
+
+# PDFBox (rate list PDF import)
+-keep class com.tom_roush.** { *; }
+-dontwarn com.tom_roush.**
+-dontwarn org.apache.**
