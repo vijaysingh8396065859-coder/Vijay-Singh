@@ -10,6 +10,7 @@ import com.example.data.DairyFormatters
 import com.example.data.DairyRepository
 import com.example.data.DeliveryShift
 import com.example.data.MilkCollection
+import com.example.data.MilkSupplier
 import com.example.data.MilkEntry
 import com.example.data.MilkType
 import com.example.data.MonthlyCustomerStatement
@@ -39,6 +40,7 @@ data class DairyDataSnapshot(
     val milkEntries: List<MilkEntry> = emptyList(),
     val payments: List<PaymentRecord> = emptyList(),
     val collections: List<MilkCollection> = emptyList(),
+    val suppliers: List<MilkSupplier> = emptyList(),
     val rateOverrides: Map<String, Double> = emptyMap(),
     val importedRates: Map<String, Double> = emptyMap()
 ) {
@@ -163,8 +165,10 @@ class DairyViewModel(
         repository.observePayments(currentUserId),
         repository.observeCollections(currentUserId)
             .catch { emit(emptyList<MilkCollection>()) },
-        rateDataFlow
-    ) { customers, entries, payments, collections, rateData ->
+        rateDataFlow,
+        repository.observeSuppliers(currentUserId)
+            .catch { emit(emptyList<MilkSupplier>()) }
+    ) { customers, entries, payments, collections, rateData, suppliers ->
         val (rateOverrides, importedRates) = rateData
         UiState.Success(
             DairyDataSnapshot(
@@ -172,6 +176,7 @@ class DairyViewModel(
                 milkEntries = entries,
                 payments = payments,
                 collections = collections,
+                suppliers = suppliers,
                 rateOverrides = rateOverrides,
                 importedRates = importedRates
             )
@@ -447,6 +452,37 @@ class DairyViewModel(
                 onComplete()
             }.onFailure { err ->
                 _snackbarMessage.value = err.localizedMessage ?: "दूध दर्ज करने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun addSupplier(name: String) {
+        val cleanName = name.trim()
+        if (cleanName.isEmpty()) {
+            _snackbarMessage.value = "Supplier का नाम लिखो।"
+            return
+        }
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.addSupplier(currentUserId, cleanName, "")
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "Supplier जुड़ गया: $cleanName"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "Supplier जोड़ने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun deleteSupplier(supplierId: String) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.deleteSupplier(currentUserId, supplierId)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "Supplier हटा दिया गया"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "Supplier हटाने में त्रुटि हुई।"
             }
         }
     }
