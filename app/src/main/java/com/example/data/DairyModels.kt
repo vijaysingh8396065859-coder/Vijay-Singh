@@ -170,6 +170,65 @@ object DairyFormatters {
         dateKeyFormat.format(cal.time)
     }
 
+    /** 10-din cycle (1-10, 11-20, 21-mahine ke aakhir) ki shuruaat wali dateKey. */
+    fun cycleStartKey(dateKey: String): String = synchronized(dateKeyFormat) {
+        val parsed = runCatching { dateKeyFormat.parse(dateKey) }.getOrNull() ?: Date()
+        val cal = Calendar.getInstance().apply { time = parsed }
+        val startDay = when (cal.get(Calendar.DAY_OF_MONTH)) {
+            in 1..10 -> 1
+            in 11..20 -> 11
+            else -> 21
+        }
+        cal.set(Calendar.DAY_OF_MONTH, startDay)
+        dateKeyFormat.format(cal.time)
+    }
+
+    /** Us cycle ki aakhri dateKey. */
+    fun cycleEndKey(dateKey: String): String = synchronized(dateKeyFormat) {
+        val parsed = runCatching { dateKeyFormat.parse(cycleStartKey(dateKey)) }.getOrNull() ?: Date()
+        val cal = Calendar.getInstance().apply { time = parsed }
+        when (cal.get(Calendar.DAY_OF_MONTH)) {
+            1 -> cal.set(Calendar.DAY_OF_MONTH, 10)
+            11 -> cal.set(Calendar.DAY_OF_MONTH, 20)
+            else -> cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
+        }
+        dateKeyFormat.format(cal.time)
+    }
+
+    /** Poora ek cycle aage/peeche jao (offset +1 = agla cycle, -1 = pichla). */
+    fun shiftCycleKey(dateKey: String, cyclesOffset: Int): String {
+        var current = cycleStartKey(dateKey)
+        if (cyclesOffset == 0) return current
+        val step = if (cyclesOffset > 0) 1 else -1
+        repeat(kotlin.math.abs(cyclesOffset)) {
+            current = synchronized(dateKeyFormat) {
+                val parsed = runCatching { dateKeyFormat.parse(current) }.getOrNull() ?: Date()
+                val cal = Calendar.getInstance().apply { time = parsed }
+                if (step > 0) {
+                    when (cal.get(Calendar.DAY_OF_MONTH)) {
+                        1 -> cal.set(Calendar.DAY_OF_MONTH, 11)
+                        11 -> cal.set(Calendar.DAY_OF_MONTH, 21)
+                        else -> {
+                            cal.add(Calendar.MONTH, 1)
+                            cal.set(Calendar.DAY_OF_MONTH, 1)
+                        }
+                    }
+                } else {
+                    when (cal.get(Calendar.DAY_OF_MONTH)) {
+                        11 -> cal.set(Calendar.DAY_OF_MONTH, 1)
+                        21 -> cal.set(Calendar.DAY_OF_MONTH, 11)
+                        else -> {
+                            cal.add(Calendar.MONTH, -1)
+                            cal.set(Calendar.DAY_OF_MONTH, 21)
+                        }
+                    }
+                }
+                dateKeyFormat.format(cal.time)
+            }
+        }
+        return current
+    }
+
     fun shiftMonthKey(monthKey: String, monthsOffset: Int): String = synchronized(monthKeyFormat) {
         val parsed = runCatching { monthKeyFormat.parse(monthKey) }.getOrNull() ?: Date()
         val cal = Calendar.getInstance().apply {
@@ -256,13 +315,31 @@ data class MilkCollection(
 }
 
 data class MilkSupplier(
-    val id: String = "",
+    @DocumentId val id: String = "",
     val userId: String = "",
     val name: String = "",
     val phone: String = "",
     val sortOrder: Long = 0,
     @ServerTimestamp val createdAt: Date? = null,
     @ServerTimestamp val updatedAt: Date? = null
+)
+
+data class SupplierTransaction(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val supplierName: String = "",
+    val type: String = "GOODS",
+    val itemName: String = "",
+    val quantity: Double = 0.0,
+    val unit: String = "BORI",
+    val ratePerUnit: Double = 0.0,
+    val amount: Double = 0.0,
+    val paymentMode: String = "CASH",
+    val note: String = "",
+    val dateKey: String = "",
+    val isHome: Boolean = false,
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
 )
 
 data class SupplierSummary(
