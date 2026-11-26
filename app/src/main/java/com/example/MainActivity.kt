@@ -96,10 +96,12 @@ import com.example.ui.components.SplashOverlay
 import com.example.ui.components.CustomerFormDialog
 import com.example.ui.components.MilkEntryFormDialog
 import com.example.ui.components.PaymentFormDialog
+import com.example.ui.screens.CollectionScreen
 import com.example.ui.screens.CustomerDetailScreen
 import com.example.ui.screens.DairyDashboardScreen
 import com.example.ui.screens.CustomersScreen
 import com.example.ui.screens.PaymentsScreen
+import com.example.ui.screens.RateChartScreen
 import com.example.ui.screens.ReportsScreen
 import com.example.ui.screens.TodayScreen
 import com.example.ui.theme.MilkDiaryTheme
@@ -116,6 +118,8 @@ const val ROUTE_DASHBOARD = "dashboard"
 const val ROUTE_CUSTOMERS = "customers"
 const val ROUTE_PAYMENTS = "payments"
 const val ROUTE_REPORTS = "reports"
+const val ROUTE_RATE_CHART = "rate_chart"
+const val ROUTE_COLLECTION = "collection"
 const val ROUTE_CUSTOMER_DETAIL = "customer_detail/{customerId}"
 
 private data class NavDestinationItem(
@@ -529,7 +533,46 @@ private fun MilkDiaryMainShell(
                             }
 
                             composable(ROUTE_DASHBOARD) {
-                                DairyDashboardScreen(snapshot = snapshot)
+                                DairyDashboardScreen(
+                                    snapshot = snapshot,
+                                    onOpenCollection = {
+                                        navController.navigate(ROUTE_COLLECTION)
+                                    },
+                                    onOpenRateChart = {
+                                        navController.navigate(ROUTE_RATE_CHART)
+                                    }
+                                )
+                            }
+
+                            composable(ROUTE_COLLECTION) {
+                                CollectionScreen(
+                                    snapshot = snapshot,
+                                    selectedDateKey = selectedDateKey,
+                                    onBack = { navController.popBackStack() },
+                                    onSaveCollection = { name, sample, colShift, qty, fat, snf, rate, total ->
+                                        viewModel.saveCollectionEntry(
+                                            supplierName = name,
+                                            sampleNo = sample,
+                                            dateKey = selectedDateKey,
+                                            shift = colShift,
+                                            quantityLiters = qty,
+                                            fat = fat,
+                                            snf = snf,
+                                            ratePerLiter = rate,
+                                            totalAmount = total
+                                        )
+                                    },
+                                    onDeleteCollection = viewModel::deleteCollectionEntry
+                                )
+                            }
+
+                            composable(ROUTE_RATE_CHART) {
+                                RateChartScreen(
+                                    snapshot = snapshot,
+                                    onBack = { navController.popBackStack() },
+                                    onSaveRate = viewModel::saveRateOverride,
+                                    onResetRate = viewModel::resetRateOverride
+                                )
                             }
 
                             composable(ROUTE_CUSTOMERS) {
