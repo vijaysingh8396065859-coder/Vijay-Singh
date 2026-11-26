@@ -217,6 +217,41 @@ fun DairyDashboardScreen(
                 }
             }
 
+            item(key = "dash_hisaab_day") {
+                val dayOfMonth = DairyFormatters.todayDateKey()
+                    .split("-").getOrNull(2)?.toIntOrNull() ?: 0
+                if (dayOfMonth == 1 || dayOfMonth == 11 || dayOfMonth == 21) {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "📋 Hisaab ka din!",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Kal pichla 10-din ka cycle khatm hua hai। Supplier Hisaab mein jaakar sabki sheets bhej do।",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Button(
+                                onClick = onOpenSupplierHisaab,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Supplier Hisaab kholo")
+                            }
+                        }
+                    }
+                }
+            }
+
             item(key = "dash_daily_summary") {
                 DailySummaryCard(snapshot = snapshot)
             }
