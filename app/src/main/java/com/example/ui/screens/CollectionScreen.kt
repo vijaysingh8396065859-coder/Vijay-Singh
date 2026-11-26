@@ -70,7 +70,7 @@ fun CollectionScreen(
     val fat = fatText.toDoubleOrNull() ?: 0.0
     val snf = snfText.toDoubleOrNull() ?: 0.0
     val rate = if (fat > 0.0 && snf > 0.0) {
-        RateChart.rateFor(fat, snf, snapshot.rateOverrides)
+        RateChart.rateFor(fat, snf, snapshot.importedRates, snapshot.rateOverrides)
     } else {
         0.0
     }
