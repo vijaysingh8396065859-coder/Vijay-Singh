@@ -159,28 +159,31 @@ class DairyViewModel(
             .catch { emit(emptyMap<String, Double>()) }
     ) { overrides, imported -> overrides to imported }
 
-    val uiState: StateFlow<UiState<DairyDataSnapshot>> = combine(
+    private val coreDataFlow = combine(
         repository.observeCustomers(currentUserId),
         repository.observeMilkEntries(currentUserId),
         repository.observePayments(currentUserId),
         repository.observeCollections(currentUserId)
             .catch { emit(emptyList<MilkCollection>()) },
-        rateDataFlow,
+        rateDataFlow
+    ) { customers, entries, payments, collections, rateData ->
+        val (rateOverrides, importedRates) = rateData
+        DairyDataSnapshot(
+            customers = customers,
+            milkEntries = entries,
+            payments = payments,
+            collections = collections,
+            rateOverrides = rateOverrides,
+            importedRates = importedRates
+        )
+    }
+
+    val uiState: StateFlow<UiState<DairyDataSnapshot>> = combine(
+        coreDataFlow,
         repository.observeSuppliers(currentUserId)
             .catch { emit(emptyList<MilkSupplier>()) }
-    ) { customers, entries, payments, collections, rateData, suppliers ->
-        val (rateOverrides, importedRates) = rateData
-        UiState.Success(
-            DairyDataSnapshot(
-                customers = customers,
-                milkEntries = entries,
-                payments = payments,
-                collections = collections,
-                suppliers = suppliers,
-                rateOverrides = rateOverrides,
-                importedRates = importedRates
-            )
-        ) as UiState<DairyDataSnapshot>
+    ) { core, suppliers ->
+        UiState.Success(core.copy(suppliers = suppliers)) as UiState<DairyDataSnapshot>
     }
         .catch { error ->
             val firestoreError = generateSequence(error) { it.cause }
