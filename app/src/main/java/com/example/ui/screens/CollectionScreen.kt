@@ -59,7 +59,7 @@ fun CollectionScreen(
         totalAmount: Double
     ) -> Unit,
     onDeleteCollection: (String) -> Unit,
-    onAddSupplier: (String) -> Unit,
+    onAddSupplier: (String, String) -> Unit,
     onDeleteSupplier: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -109,6 +109,7 @@ fun CollectionScreen(
 
     // --- Line mode (ghar-ghar collection, automatic next) ---
     var newSupplierName by remember { mutableStateOf("") }
+    var newSupplierPhone by remember { mutableStateOf("") }
     var lineActive by remember { mutableStateOf(false) }
     var lineIndex by remember { mutableStateOf(0) }
     var lineFinished by remember { mutableStateOf(false) }
@@ -322,24 +323,38 @@ fun CollectionScreen(
                                         }
                                     }
                                 }
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    OutlinedTextField(
-                                        value = newSupplierName,
-                                        onValueChange = { newSupplierName = it },
-                                        label = { Text("नया supplier / घर") },
-                                        singleLine = true,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    OutlinedButton(
-                                        onClick = {
-                                            if (newSupplierName.isNotBlank()) {
-                                                onAddSupplier(newSupplierName.trim())
-                                                newSupplierName = ""
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        OutlinedTextField(
+                                            value = newSupplierName,
+                                            onValueChange = { newSupplierName = it },
+                                            label = { Text("नया supplier / घर") },
+                                            singleLine = true,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        OutlinedButton(
+                                            onClick = {
+                                                if (newSupplierName.isNotBlank()) {
+                                                    onAddSupplier(
+                                                        newSupplierName.trim(),
+                                                        newSupplierPhone.trim()
+                                                    )
+                                                    newSupplierName = ""
+                                                    newSupplierPhone = ""
+                                                }
                                             }
+                                        ) {
+                                            Text("जोड़ो")
                                         }
-                                    ) {
-                                        Text("जोड़ो")
                                     }
+                                    OutlinedTextField(
+                                        value = newSupplierPhone,
+                                        onValueChange = { newSupplierPhone = it },
+                                        label = { Text("Phone / WhatsApp नंबर (sheet भेजने के लिए)") },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
                                 }
                                 Button(
                                     onClick = {
