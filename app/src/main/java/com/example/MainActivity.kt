@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material.icons.rounded.Storefront
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -51,6 +52,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -104,6 +106,7 @@ import com.example.ui.screens.PaymentsScreen
 import com.example.ui.screens.RateChartScreen
 import com.example.ui.screens.ReportsScreen
 import com.example.ui.screens.TodayScreen
+import com.example.update.AppUpdate
 import com.example.ui.theme.MilkDiaryTheme
 import com.example.viewmodel.DairyDataSnapshot
 import com.example.viewmodel.DairyViewModel
@@ -140,6 +143,7 @@ private val primaryDestinations = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(this)
         enableEdgeToEdge()
         setContent {
             MilkDiaryTheme {
@@ -221,6 +225,69 @@ private fun MilkDiaryMainShell(
             snackbarHostState.showSnackbar(msg)
             viewModel.clearSnackbar()
         }
+    }
+
+    // --- App update (GitHub Releases se) ---
+    var pendingUpdate by remember { mutableStateOf<AppUpdate.UpdateInfo?>(null) }
+    var updateDownloading by remember { mutableStateOf(false) }
+
+    fun startUpdateDownload(info: AppUpdate.UpdateInfo) {
+        if (!AppUpdate.canInstall(context)) {
+            context.startActivity(AppUpdate.installPermissionIntent(context))
+            viewModel.notifyUser("Update के लिए एक बार इस app को install की अनुमति दो, फिर वापस आकर Update दबाओ")
+            return
+        }
+        updateDownloading = true
+        scope.launch {
+            val file = AppUpdate.downloadApk(context, info)
+            updateDownloading = false
+            if (file != null) {
+                pendingUpdate = null
+                context.startActivity(AppUpdate.installIntent(context, file))
+            } else {
+                viewModel.notifyUser("Update download नहीं हो पाया — net check करके दोबारा try करो")
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val info = AppUpdate.fetchLatest()
+        if (info != null &&
+            AppUpdate.isNewer(info.versionName, AppUpdate.currentVersionName(context))
+        ) {
+            pendingUpdate = info
+        }
+    }
+
+    val updateToShow = pendingUpdate
+    if (updateToShow != null) {
+        AlertDialog(
+            onDismissRequest = { if (!updateDownloading) pendingUpdate = null },
+            title = { Text("नया Update आया है — v${updateToShow.versionName}") },
+            text = {
+                Text(
+                    if (updateDownloading) {
+                        "Update download हो रहा है…"
+                    } else {
+                        updateToShow.notes.ifBlank {
+                            "इस update में नये features और सुधार हैं। तुम्हारा सारा हिसाब सुरक्षित रहेगा।"
+                        }
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !updateDownloading,
+                    onClick = { startUpdateDownload(updateToShow) }
+                ) { Text("Update करो") }
+            },
+            dismissButton = {
+                TextButton(
+                    enabled = !updateDownloading,
+                    onClick = { pendingUpdate = null }
+                ) { Text("बाद में") }
+            }
+        )
     }
 
     val navController = rememberNavController()
@@ -540,6 +607,23 @@ private fun MilkDiaryMainShell(
                                     },
                                     onOpenRateChart = {
                                         navController.navigate(ROUTE_RATE_CHART)
+                                    },
+                                    onCheckUpdate = {
+                                        scope.launch {
+                                            val info = AppUpdate.fetchLatest()
+                                            if (info != null &&
+                                                AppUpdate.isNewer(
+                                                    info.versionName,
+                                                    AppUpdate.currentVersionName(context)
+                                                )
+                                            ) {
+                                                pendingUpdate = info
+                                            } else {
+                                                viewModel.notifyUser(
+                                                    "App बिल्कुल up-to-date है — कोई नया update नहीं है"
+                                                )
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -571,7 +655,11 @@ private fun MilkDiaryMainShell(
                                     snapshot = snapshot,
                                     onBack = { navController.popBackStack() },
                                     onSaveRate = viewModel::saveRateOverride,
-                                    onResetRate = viewModel::resetRateOverride
+                                    onResetRate = viewModel::resetRateOverride,
+                                    onImportChart = { rates ->
+                                        viewModel.importRateChart(rates, "user-import")
+                                    },
+                                    onClearImportedChart = viewModel::clearImportedChart
                                 )
                             }
 
