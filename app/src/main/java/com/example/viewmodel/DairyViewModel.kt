@@ -39,7 +39,8 @@ data class DairyDataSnapshot(
     val milkEntries: List<MilkEntry> = emptyList(),
     val payments: List<PaymentRecord> = emptyList(),
     val collections: List<MilkCollection> = emptyList(),
-    val rateOverrides: Map<String, Double> = emptyMap()
+    val rateOverrides: Map<String, Double> = emptyMap(),
+    val importedRates: Map<String, Double> = emptyMap()
 ) {
     val supplierSummaries: List<SupplierSummary> by lazy {
         collections.groupBy { it.supplierName.trim().lowercase() }
@@ -149,20 +150,27 @@ class DairyViewModel(
     private val _isMutating = MutableStateFlow(false)
     val isMutating: StateFlow<Boolean> = _isMutating.asStateFlow()
 
+    private val rateDataFlow = combine(
+        repository.observeRateOverrides(currentUserId),
+        repository.observeImportedChart(currentUserId)
+    ) { overrides, imported -> overrides to imported }
+
     val uiState: StateFlow<UiState<DairyDataSnapshot>> = combine(
         repository.observeCustomers(currentUserId),
         repository.observeMilkEntries(currentUserId),
         repository.observePayments(currentUserId),
         repository.observeCollections(currentUserId),
-        repository.observeRateOverrides(currentUserId)
-    ) { customers, entries, payments, collections, rateOverrides ->
+        rateDataFlow
+    ) { customers, entries, payments, collections, rateData ->
+        val (rateOverrides, importedRates) = rateData
         UiState.Success(
             DairyDataSnapshot(
                 customers = customers,
                 milkEntries = entries,
                 payments = payments,
                 collections = collections,
-                rateOverrides = rateOverrides
+                rateOverrides = rateOverrides,
+                importedRates = importedRates
             )
         ) as UiState<DairyDataSnapshot>
     }
@@ -195,6 +203,10 @@ class DairyViewModel(
 
     fun changeSelectedMonth(monthsOffset: Int) {
         _selectedMonthKey.value = DairyFormatters.shiftMonthKey(_selectedMonthKey.value, monthsOffset)
+    }
+
+    fun notifyUser(message: String) {
+        _snackbarMessage.value = message
     }
 
     fun clearSnackbar() {
@@ -471,6 +483,32 @@ class DairyViewModel(
                 _snackbarMessage.value = "रेट असली लिस्ट पर वापस हुआ"
             }.onFailure { err ->
                 _snackbarMessage.value = err.localizedMessage ?: "रेट रीसेट करने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun importRateChart(rates: Map<String, Double>, sourceName: String) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.saveImportedChart(currentUserId, rates, sourceName)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "नयी Rate List लागू हो गयी — ${rates.size} रेट"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "लिस्ट लागू करने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun clearImportedChart() {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.deleteImportedChart(currentUserId)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "असली Rate List वापस लागू हुई"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "लिस्ट हटाने में त्रुटि हुई।"
             }
         }
     }
