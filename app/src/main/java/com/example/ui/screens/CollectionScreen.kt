@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.data.DairyFormatters
+import com.example.data.MilkCollection
 import com.example.data.DeliveryShift
 import com.example.data.RateChart
 import com.example.viewmodel.DairyDataSnapshot
@@ -59,6 +60,7 @@ fun CollectionScreen(
         totalAmount: Double
     ) -> Unit,
     onDeleteCollection: (String) -> Unit,
+    onUpdateFatSnf: (MilkCollection, Double, Double) -> Unit,
     onAddSupplier: (String, String) -> Unit,
     onDeleteSupplier: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -79,7 +81,8 @@ fun CollectionScreen(
         0.0
     }
     val total = DairyFormatters.roundTwoDecimals(qty * rate)
-    val canSave = supplierName.isNotBlank() && qty > 0.0 && fat > 0.0 && snf > 0.0 && rate > 0.0
+    val fatSnfOk = (fatText.isBlank() && snfText.isBlank()) || (fat > 0.0 && snf > 0.0)
+    val canSave = supplierName.isNotBlank() && qty > 0.0 && fatSnfOk
 
     val todayCollections = remember(snapshot.collections, selectedDateKey) {
         snapshot.collections.filter { it.dateKey == selectedDateKey }
@@ -463,6 +466,13 @@ fun CollectionScreen(
                                 }
                             }
                         }
+                        if (fatText.isBlank() && snfText.isBlank()) {
+                            Text(
+                                text = "FAT/SNF खाली छोड़ोगे तो entry pending दर्ज होगी — dairy पर machine से निकालकर नीचे वाली list से बाद में भर सकेंगे।",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                         Button(
                             onClick = {
                                 onSaveCollection(
@@ -535,12 +545,22 @@ fun CollectionScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "${col.parsedShift.labelHi} • " +
-                                        "${DairyFormatters.formatLiters(col.quantityLiters)} • " +
-                                        "FAT ${col.fat} / SNF ${col.snf} • " +
-                                        "${DairyFormatters.formatRupees(col.ratePerLiter)}/लीटर",
+                                    text = if (col.fat == 0.0) {
+                                        "${col.parsedShift.labelHi} • " +
+                                            "${DairyFormatters.formatLiters(col.quantityLiters)} • " +
+                                            "FAT/SNF बाकी है"
+                                    } else {
+                                        "${col.parsedShift.labelHi} • " +
+                                            "${DairyFormatters.formatLiters(col.quantityLiters)} • " +
+                                            "FAT ${col.fat} / SNF ${col.snf} • " +
+                                            "${DairyFormatters.formatRupees(col.ratePerLiter)}/लीटर"
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (col.fat == 0.0) {
+                                        MaterialTheme.colorScheme.error
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
                                 )
                             }
                             Text(
@@ -557,6 +577,21 @@ fun CollectionScreen(
                             }
                         }
                     }
+                }
+            }
+
+            val pendingToday = todayCollections.filter { it.fat == 0.0 }
+            if (pendingToday.isNotEmpty()) {
+                item(key = "pending_title") {
+                    Text(
+                        text = "⏳ FAT/SNF बाकी है (${pendingToday.size}) — sample number देखकर भरो",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                items(items = pendingToday, key = { "pend_${it.id}" }) { col ->
+                    PendingFatSnfRow(col = col, onUpdateFatSnf = onUpdateFatSnf)
                 }
             }
 
@@ -592,6 +627,66 @@ fun CollectionScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingFatSnfRow(
+    col: MilkCollection,
+    onUpdateFatSnf: (MilkCollection, Double, Double) -> Unit
+) {
+    var fatText by remember(col.id) { mutableStateOf("") }
+    var snfText by remember(col.id) { mutableStateOf("") }
+    val fat = fatText.toDoubleOrNull() ?: 0.0
+    val snf = snfText.toDoubleOrNull() ?: 0.0
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = col.supplierName +
+                    if (col.sampleNo.isNotBlank()) " • सैंपल ${col.sampleNo}" else "",
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "${col.parsedShift.labelHi} • ${DairyFormatters.formatLiters(col.quantityLiters)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = fatText,
+                    onValueChange = { fatText = it },
+                    label = { Text("FAT") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = snfText,
+                    onValueChange = { snfText = it },
+                    label = { Text("SNF") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.weight(1f)
+                )
+                Button(
+                    onClick = { onUpdateFatSnf(col, fat, snf) },
+                    enabled = fat > 0.0 && snf > 0.0,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Text("Rate लगाओ")
                 }
             }
         }
