@@ -161,6 +161,28 @@ fun CollectionScreen(
         }
     }
 
+    // Line mode ab DEFAULT hai: screen khulte hi (aur date/shift badalte hi)
+    // line apne aap wahi se shuru hoti hai jahan us date+shift ki entry baaki hai।
+    var lineAutoStarted by remember(selectedDateKey, shift) { mutableStateOf(false) }
+    LaunchedEffect(roster, selectedDateKey, shift, lineAutoStarted) {
+        if (!lineAutoStarted && roster.isNotEmpty() && !lineFinished) {
+            lineAutoStarted = true
+            lineSavedCount = 0
+            lineGoodsAmount = 0.0
+            lineGoodsCount = 0
+            lineLiters = 0.0
+            lineAmount = 0.0
+            val firstPending = roster.indexOfFirst { sup ->
+                snapshot.collections.none {
+                    it.supplierName == sup.name && it.dateKey == selectedDateKey &&
+                        it.parsedShift == shift
+                }
+            }
+            lineIndex = if (firstPending >= 0) firstPending else 0
+            lineActive = true
+        }
+    }
+
     Column(modifier = modifier.fillMaxSize()) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
