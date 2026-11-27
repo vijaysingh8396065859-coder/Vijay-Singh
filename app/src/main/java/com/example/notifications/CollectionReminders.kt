@@ -39,9 +39,41 @@ object CollectionReminders {
         manager.createNotificationChannel(channel)
     }
 
+    private const val PREFS_NAME = "milk_diary_settings"
+
+    fun morningTime(context: Context): Pair<Int, Int> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt("reminder_morning_hour", MORNING_HOUR) to
+            prefs.getInt("reminder_morning_minute", MORNING_MINUTE)
+    }
+
+    fun eveningTime(context: Context): Pair<Int, Int> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt("reminder_evening_hour", EVENING_HOUR) to
+            prefs.getInt("reminder_evening_minute", EVENING_MINUTE)
+    }
+
+    fun saveTimes(
+        context: Context,
+        mHour: Int,
+        mMinute: Int,
+        eHour: Int,
+        eMinute: Int
+    ) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+            .putInt("reminder_morning_hour", mHour)
+            .putInt("reminder_morning_minute", mMinute)
+            .putInt("reminder_evening_hour", eHour)
+            .putInt("reminder_evening_minute", eMinute)
+            .apply()
+        scheduleAll(context)
+    }
+
     fun scheduleAll(context: Context) {
-        schedule(context, MORNING_REQUEST, MORNING_HOUR, MORNING_MINUTE)
-        schedule(context, EVENING_REQUEST, EVENING_HOUR, EVENING_MINUTE)
+        val (mHour, mMinute) = morningTime(context)
+        val (eHour, eMinute) = eveningTime(context)
+        schedule(context, MORNING_REQUEST, mHour, mMinute)
+        schedule(context, EVENING_REQUEST, eHour, eMinute)
     }
 
     fun schedule(context: Context, requestCode: Int, hour: Int, minute: Int) {
@@ -114,18 +146,20 @@ class ReminderReceiver : BroadcastReceiver() {
 
         // Agle din ke liye wahi alarm dobara lagao
         if (isMorning) {
+            val (mHour, mMinute) = CollectionReminders.morningTime(context)
             CollectionReminders.schedule(
                 context,
                 CollectionReminders.MORNING_REQUEST,
-                CollectionReminders.MORNING_HOUR,
-                CollectionReminders.MORNING_MINUTE
+                mHour,
+                mMinute
             )
         } else {
+            val (eHour, eMinute) = CollectionReminders.eveningTime(context)
             CollectionReminders.schedule(
                 context,
                 CollectionReminders.EVENING_REQUEST,
-                CollectionReminders.EVENING_HOUR,
-                CollectionReminders.EVENING_MINUTE
+                eHour,
+                eMinute
             )
         }
     }
