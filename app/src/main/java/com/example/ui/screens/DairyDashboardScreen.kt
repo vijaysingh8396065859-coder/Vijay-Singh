@@ -73,7 +73,9 @@ fun DairyDashboardScreen(
     onOpenCollection: () -> Unit = {},
     onOpenRateChart: () -> Unit = {},
     onOpenSupplierHisaab: () -> Unit = {},
-    onCheckUpdate: () -> Unit = {}
+    onCheckUpdate: () -> Unit = {},
+    onOpenGaltiCheck: () -> Unit = {},
+    onOpenGuide: () -> Unit = {}
 ) {
     val todayKey = remember { DairyFormatters.todayDateKey() }
 
@@ -127,18 +129,49 @@ fun DairyDashboardScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item(key = "dash_title") {
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "मेरी डेयरी",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = "आज का पूरा हाल एक ही जगह",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                val heroCols = snapshot.collections.filter {
+                    it.dateKey == DairyFormatters.todayDateKey()
+                }
+                val heroLitres = DairyFormatters.roundTwoDecimals(
+                    heroCols.sumOf { it.quantityLiters }
+                )
+                val heroAmount = DairyFormatters.roundToRupee(
+                    heroCols.sumOf { it.totalAmount }
+                )
+                Card(
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF3D9ACA), Color(0xFF1F6FB2))
+                                )
+                            )
+                            .padding(20.dp)
+                            .fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "🥛 Milk Diary",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "आपका विश्वास ही हमारी पहचान है",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                        Text(
+                            text = "Aaj ka doodh: ${DairyFormatters.formatLiters(heroLitres)} • " +
+                                DairyFormatters.formatRupees(heroAmount),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
 
@@ -190,23 +223,49 @@ fun DairyDashboardScreen(
 
             item(key = "dash_collection") {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = onOpenCollection,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "दूध Collection — FAT/SNF से रेट लगाओ")
+                    Text(
+                        text = "🚀 Kaam shuru karo",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DashActionCard(
+                            emoji = "🥛",
+                            title = "Doodh Collection",
+                            desc = "Route par ghar-ghar doodh, bina rate save",
+                            modifier = Modifier.weight(1f),
+                            onClick = onOpenCollection
+                        )
+                        DashActionCard(
+                            emoji = "📋",
+                            title = "Supplier Hisaab",
+                            desc = "10 din ka hisaab aur WhatsApp sheet",
+                            modifier = Modifier.weight(1f),
+                            onClick = onOpenSupplierHisaab
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DashActionCard(
+                            emoji = "📈",
+                            title = "Rate Chart",
+                            desc = "FAT/SNF rate list dekho ya badlo",
+                            modifier = Modifier.weight(1f),
+                            onClick = onOpenRateChart
+                        )
+                        DashActionCard(
+                            emoji = "⚠️",
+                            title = "Galti Check",
+                            desc = "Duplicate aur galtiyaan pehle pakdo",
+                            modifier = Modifier.weight(1f),
+                            onClick = onOpenGaltiCheck
+                        )
                     }
                     OutlinedButton(
-                        onClick = onOpenRateChart,
+                        onClick = onOpenGuide,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "Rate List देखो / बदलो")
-                    }
-                    OutlinedButton(
-                        onClick = onOpenSupplierHisaab,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "Supplier Hisaab — 10 दिन का हिसाब")
+                        Text(text = "❓ App Kaise Chalaye — naya user? Yahan se seekho")
                     }
                     OutlinedButton(
                         onClick = onCheckUpdate,
@@ -256,15 +315,15 @@ fun DairyDashboardScreen(
                 val tKey = DairyFormatters.todayDateKey()
                 val tCols = snapshot.collections.filter { it.dateKey == tKey }
                 val tLitres = DairyFormatters.roundTwoDecimals(tCols.sumOf { it.quantityLiters })
-                val tAmount = DairyFormatters.roundTwoDecimals(tCols.sumOf { it.totalAmount })
+                val tAmount = DairyFormatters.roundToRupee(tCols.sumOf { it.totalAmount })
                 val tSuppliers = tCols.map { it.supplierName }.distinct().size
                 val tPending = tCols.count { it.fat == 0.0 }
-                val tGoods = DairyFormatters.roundTwoDecimals(
+                val tGoods = DairyFormatters.roundToRupee(
                     snapshot.supplierTransactions.filter {
                         it.dateKey == tKey && it.type == "GOODS" && !it.isHome
                     }.sumOf { it.amount }
                 )
-                val tAdvPay = DairyFormatters.roundTwoDecimals(
+                val tAdvPay = DairyFormatters.roundToRupee(
                     snapshot.supplierTransactions.filter {
                         it.dateKey == tKey && (it.type == "ADVANCE" || it.type == "PAYMENT") && !it.isHome
                     }.sumOf { it.amount }
@@ -286,7 +345,8 @@ fun DairyDashboardScreen(
                         .sumOf { it.totalAmount } -
                         snapshot.supplierTransactions.filter { it.supplierName == n && !it.isHome }
                             .sumOf { it.amount }
-                    if (bal > 0) denaTotal += bal else dairyBaakiTotal += -bal
+                    val rBal = DairyFormatters.roundToRupee(bal)
+                    if (rBal > 0) denaTotal += rBal else dairyBaakiTotal += -rBal
                 }
                 Card(
                     shape = RoundedCornerShape(20.dp),
@@ -795,5 +855,42 @@ private fun SummaryLine(label: String, value: String) {
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold
         )
+    }
+}
+
+
+@Composable
+private fun DashActionCard(
+    emoji: String,
+    title: String,
+    desc: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(text = emoji, style = MaterialTheme.typography.headlineSmall)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = desc,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
