@@ -63,7 +63,7 @@ fun SupplierProfileScreen(
     fun balanceBefore(startKey: String): Double {
         val milkB = myCols.filter { it.dateKey < startKey }.sumOf { it.totalAmount }
         val txnB = myTxns.filter { it.dateKey < startKey }.sumOf { it.amount }
-        return DairyFormatters.roundTwoDecimals(milkB - txnB)
+        return DairyFormatters.roundToRupee(milkB - txnB)
     }
 
     val curStart = DairyFormatters.cycleStartKey(todayKey)
@@ -71,20 +71,20 @@ fun SupplierProfileScreen(
     val overall = balanceBefore(DairyFormatters.shiftCycleKey(todayKey, 1))
     val prevClosing = balanceBefore(curStart)
     val cycleMilkList = myCols.filter { it.dateKey in curStart..curEnd }
-    val cycleMilk = DairyFormatters.roundTwoDecimals(cycleMilkList.sumOf { it.totalAmount })
-    val cycleTxns = DairyFormatters.roundTwoDecimals(
+    val cycleMilk = DairyFormatters.roundToRupee(cycleMilkList.sumOf { it.totalAmount })
+    val cycleTxns = DairyFormatters.roundToRupee(
         myTxns.filter { it.dateKey in curStart..curEnd }.sumOf { it.amount }
     )
     val totalLitres = DairyFormatters.roundTwoDecimals(myCols.sumOf { it.quantityLiters })
-    val totalAmount = DairyFormatters.roundTwoDecimals(myCols.sumOf { it.totalAmount })
+    val totalAmount = DairyFormatters.roundToRupee(myCols.sumOf { it.totalAmount })
 
     val pastCycles = (1..3).map { back ->
         val start = DairyFormatters.shiftCycleKey(todayKey, -back)
         val end = DairyFormatters.cycleEndKey(start)
-        val milk = DairyFormatters.roundTwoDecimals(
+        val milk = DairyFormatters.roundToRupee(
             myCols.filter { it.dateKey in start..end }.sumOf { it.totalAmount }
         )
-        val txn = DairyFormatters.roundTwoDecimals(
+        val txn = DairyFormatters.roundToRupee(
             myTxns.filter { it.dateKey in start..end }.sumOf { it.amount }
         )
         val closing = balanceBefore(DairyFormatters.shiftCycleKey(start, 1))
