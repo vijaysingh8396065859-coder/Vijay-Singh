@@ -153,9 +153,9 @@ fun ReportsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            ReportHeroCol("कुल दूध", DairyFormatters.formatLiters(totalMonthLiters), Modifier.weight(1f))
-                            ReportHeroCol("मासिक बिल", DairyFormatters.formatRupees(totalMonthBill), Modifier.weight(1f))
-                            ReportHeroCol("कुल वसूली", DairyFormatters.formatRupees(totalMonthPaid), Modifier.weight(1f))
+                            ReportHeroCol("कुल दूध", DairyFormatters.formatKg(totalMonthLiters), Modifier.weight(1f))
+                            ReportHeroCol("मासिक बिल", DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalMonthBill)), Modifier.weight(1f))
+                            ReportHeroCol("कुल वसूली", DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalMonthPaid)), Modifier.weight(1f))
                         }
 
                         Surface(
@@ -169,12 +169,12 @@ fun ReportsScreen(
                                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
                             ) {
                                 Text(
-                                    text = "सभी ग्राहकों का कुल शेष बकाया",
+                                    text = "सभी ग्राहकों का कुल डेरी बाकी",
                                     style = MaterialTheme.typography.labelMedium,
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
                                 Text(
-                                    text = DairyFormatters.formatRupees(snapshot.totalPendingDues),
+                                    text = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(snapshot.totalPendingDues)),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -324,9 +324,9 @@ private fun MilkTypeBreakdownCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                MilkLegendItem("भैंस", DairyFormatters.formatLiters(buffaloLiters), MeadowEmerald)
-                MilkLegendItem("गाय", DairyFormatters.formatLiters(cowLiters), BrassAmber)
-                MilkLegendItem("मिक्स", DairyFormatters.formatLiters(mixedLiters), UpiIndigo)
+                MilkLegendItem("भैंस", DairyFormatters.formatKg(buffaloLiters), MeadowEmerald)
+                MilkLegendItem("गाय", DairyFormatters.formatKg(cowLiters), BrassAmber)
+                MilkLegendItem("मिक्स", DairyFormatters.formatKg(mixedLiters), UpiIndigo)
             }
         }
     }
@@ -400,12 +400,12 @@ private fun MonthlyStatementCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                StatementMiniCol("दूध", DairyFormatters.formatLiters(statement.monthLiters))
-                StatementMiniCol("बिल", DairyFormatters.formatRupees(statement.monthBillAmount))
-                StatementMiniCol("जमा", DairyFormatters.formatRupees(statement.monthPaidAmount))
+                StatementMiniCol("दूध", DairyFormatters.formatKg(statement.monthLiters))
+                StatementMiniCol("बिल", DairyFormatters.formatRupees(DairyFormatters.roundToRupee(statement.monthBillAmount)))
+                StatementMiniCol("जमा", DairyFormatters.formatRupees(DairyFormatters.roundToRupee(statement.monthPaidAmount)))
                 StatementMiniCol(
-                    label = if (statement.totalBalanceDue >= 0) "कुल बकाया" else "एडवांस",
-                    value = DairyFormatters.formatRupees(kotlin.math.abs(statement.totalBalanceDue)),
+                    label = if (statement.totalBalanceDue >= 0) "डेरी बाकी" else "जमा",
+                    value = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(kotlin.math.abs(statement.totalBalanceDue))),
                     valueColor = if (statement.totalBalanceDue > 0) {
                         MaterialTheme.colorScheme.error
                     } else {
