@@ -106,6 +106,8 @@ import com.example.ui.components.PaymentFormDialog
 import com.example.ui.screens.CollectionScreen
 import com.example.ui.screens.SupplierHisaabScreen
 import com.example.ui.screens.SupplierProfileScreen
+import com.example.ui.screens.GaltiCheckScreen
+import com.example.ui.screens.GuideScreen
 import com.example.ui.screens.CustomerDetailScreen
 import com.example.ui.screens.DairyDashboardScreen
 import com.example.ui.screens.CustomersScreen
@@ -133,6 +135,8 @@ const val ROUTE_RATE_CHART = "rate_chart"
 const val ROUTE_COLLECTION = "collection"
 const val ROUTE_SUPPLIER_HISAAB = "supplier_hisaab"
 const val ROUTE_SUPPLIER_PROFILE = "supplier_profile/{supplierName}"
+const val ROUTE_GALTI_CHECK = "galti_check"
+const val ROUTE_GUIDE = "guide"
 const val ROUTE_CUSTOMER_DETAIL = "customer_detail/{customerId}"
 
 private data class NavDestinationItem(
@@ -638,6 +642,12 @@ private fun MilkDiaryMainShell(
                                     onOpenSupplierHisaab = {
                                         navController.navigate(ROUTE_SUPPLIER_HISAAB)
                                     },
+                                    onOpenGaltiCheck = {
+                                        navController.navigate(ROUTE_GALTI_CHECK)
+                                    },
+                                    onOpenGuide = {
+                                        navController.navigate(ROUTE_GUIDE)
+                                    },
                                     onCheckUpdate = {
                                         scope.launch {
                                             val info = AppUpdate.fetchLatest()
@@ -677,8 +687,8 @@ private fun MilkDiaryMainShell(
                                         )
                                     },
                                     onDeleteCollection = viewModel::deleteCollectionEntry,
-                                    onUpdateFatSnf = { colEntry, fVal, sVal ->
-                                        viewModel.updateCollectionFatSnf(colEntry, fVal, sVal)
+                                    onUpdateFatSnf = { colEntry, fVal, sVal, rVal ->
+                                        viewModel.updateCollectionFatSnf(colEntry, fVal, sVal, rVal)
                                     },
                                     onAddGoods = { gName, gItem, gQty, gUnit, gRate, gAmt ->
                                         viewModel.addSupplierTransaction(
@@ -750,6 +760,19 @@ private fun MilkDiaryMainShell(
                                     onUpdateDetails = { sId, sPhone, sVillage ->
                                         viewModel.updateSupplierDetails(sId, sPhone, sVillage)
                                     }
+                                )
+                            }
+
+                            composable(ROUTE_GALTI_CHECK) {
+                                GaltiCheckScreen(
+                                    snapshot = snapshot,
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(ROUTE_GUIDE) {
+                                GuideScreen(
+                                    onBack = { navController.popBackStack() }
                                 )
                             }
 
