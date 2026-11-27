@@ -108,6 +108,8 @@ import com.example.ui.screens.SupplierHisaabScreen
 import com.example.ui.screens.SupplierProfileScreen
 import com.example.ui.screens.GaltiCheckScreen
 import com.example.ui.screens.GuideScreen
+import com.example.ui.screens.SettingsScreen
+import com.example.ui.AppLang
 import com.example.ui.screens.CustomerDetailScreen
 import com.example.ui.screens.DairyDashboardScreen
 import com.example.ui.screens.CustomersScreen
@@ -137,6 +139,7 @@ const val ROUTE_SUPPLIER_HISAAB = "supplier_hisaab"
 const val ROUTE_SUPPLIER_PROFILE = "supplier_profile/{supplierName}"
 const val ROUTE_GALTI_CHECK = "galti_check"
 const val ROUTE_GUIDE = "guide"
+const val ROUTE_SETTINGS = "settings"
 const val ROUTE_CUSTOMER_DETAIL = "customer_detail/{customerId}"
 
 private data class NavDestinationItem(
@@ -154,10 +157,20 @@ private val primaryDestinations = listOf(
     NavDestinationItem(ROUTE_REPORTS, R.string.nav_reports, Icons.Rounded.Assessment, Icons.Outlined.Assessment)
 )
 
+private fun navLabelFor(route: String): String = when (route) {
+    ROUTE_TODAY -> AppLang.s("आज", "Today")
+    ROUTE_DASHBOARD -> AppLang.s("डेयरी", "Dairy")
+    ROUTE_CUSTOMERS -> AppLang.s("ग्राहक", "Customers")
+    ROUTE_PAYMENTS -> AppLang.s("पेमेंट", "Payments")
+    ROUTE_REPORTS -> AppLang.s("हिसाब", "Reports")
+    else -> "Milk Diary"
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        AppLang.init(this)
         com.example.notifications.CollectionReminders.createChannel(this)
         com.example.notifications.CollectionReminders.scheduleAll(this)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -382,10 +395,10 @@ private fun MilkDiaryMainShell(
                             icon = {
                                 Icon(
                                     imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,
-                                    contentDescription = stringResource(dest.labelRes)
+                                    contentDescription = navLabelFor(dest.route)
                                 )
                             },
-                            label = { Text(stringResource(dest.labelRes)) },
+                            label = { Text(navLabelFor(dest.route)) },
                             modifier = Modifier.testTag("nav_rail_${dest.route}")
                         )
                     }
@@ -403,9 +416,9 @@ private fun MilkDiaryMainShell(
                             title = {
                                 val title = when (currentRoute) {
                                     ROUTE_TODAY -> stringResource(R.string.app_name)
-                                    ROUTE_CUSTOMERS -> "ग्राहक खाता"
-                                    ROUTE_PAYMENTS -> "डेली पेमेंट"
-                                    ROUTE_REPORTS -> "मासिक हिसाब"
+                                    ROUTE_CUSTOMERS -> AppLang.s("ग्राहक खाता", "Customers")
+                                    ROUTE_PAYMENTS -> AppLang.s("डेली पेमेंट", "Daily Payments")
+                                    ROUTE_REPORTS -> AppLang.s("मासिक हिसाब", "Monthly Reports")
                                     else -> stringResource(R.string.app_name)
                                 }
                                 Text(
@@ -450,10 +463,10 @@ private fun MilkDiaryMainShell(
                                     icon = {
                                         Icon(
                                             imageVector = if (selected) dest.selectedIcon else dest.unselectedIcon,
-                                            contentDescription = stringResource(dest.labelRes)
+                                            contentDescription = navLabelFor(dest.route)
                                         )
                                     },
-                                    label = { Text(stringResource(dest.labelRes)) },
+                                    label = { Text(navLabelFor(dest.route)) },
                                     modifier = Modifier.testTag("nav_bar_${dest.route}")
                                 )
                             }
@@ -648,6 +661,9 @@ private fun MilkDiaryMainShell(
                                     onOpenGuide = {
                                         navController.navigate(ROUTE_GUIDE)
                                     },
+                                    onOpenSettings = {
+                                        navController.navigate(ROUTE_SETTINGS)
+                                    },
                                     onCheckUpdate = {
                                         scope.launch {
                                             val info = AppUpdate.fetchLatest()
@@ -772,6 +788,13 @@ private fun MilkDiaryMainShell(
 
                             composable(ROUTE_GUIDE) {
                                 GuideScreen(
+                                    onBack = { navController.popBackStack() }
+                                )
+                            }
+
+                            composable(ROUTE_SETTINGS) {
+                                SettingsScreen(
+                                    snapshot = snapshot,
                                     onBack = { navController.popBackStack() }
                                 )
                             }
