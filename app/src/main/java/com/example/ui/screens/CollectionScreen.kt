@@ -62,7 +62,7 @@ fun CollectionScreen(
         totalAmount: Double
     ) -> Unit,
     onDeleteCollection: (String) -> Unit,
-    onUpdateFatSnf: (MilkCollection, Double, Double) -> Unit,
+    onUpdateFatSnf: (MilkCollection, Double, Double, Double) -> Unit,
     onAddGoods: (supplierName: String, itemName: String, quantity: Double, unit: String, ratePerUnit: Double, amount: Double) -> Unit,
     onAddSupplier: (String, String, String) -> Unit,
     onOpenProfile: (String) -> Unit,
@@ -75,15 +75,18 @@ fun CollectionScreen(
     var qtyText by remember { mutableStateOf("") }
     var fatText by remember { mutableStateOf("") }
     var snfText by remember { mutableStateOf("") }
+    var rateOverrideText by remember { mutableStateOf("") }
 
     val qty = qtyText.toDoubleOrNull() ?: 0.0
     val fat = fatText.toDoubleOrNull() ?: 0.0
     val snf = snfText.toDoubleOrNull() ?: 0.0
-    val rate = if (fat > 0.0 && snf > 0.0) {
+    val chartRate = if (fat > 0.0 && snf > 0.0) {
         RateChart.rateFor(fat, snf, snapshot.importedRates, snapshot.rateOverrides)
     } else {
         0.0
     }
+    val rateOverride = rateOverrideText.toDoubleOrNull() ?: 0.0
+    val rate = if (rateOverride > 0.0) rateOverride else chartRate
     val total = DairyFormatters.roundTwoDecimals(qty * rate)
     val fatSnfOk = (fatText.isBlank() && snfText.isBlank()) || (fat > 0.0 && snf > 0.0)
     val canSave = supplierName.isNotBlank() && qty > 0.0 && fatSnfOk
@@ -121,6 +124,9 @@ fun CollectionScreen(
     var lineActive by remember { mutableStateOf(false) }
     var lineIndex by remember { mutableStateOf(0) }
     var lineFinished by remember { mutableStateOf(false) }
+    var routeSample by remember { mutableStateOf("") }
+    var routeQtyText by remember { mutableStateOf("") }
+    val routeQty = routeQtyText.toDoubleOrNull() ?: 0.0
     var lineSavedCount by remember { mutableStateOf(0) }
     var lineGoodsAmount by remember { mutableStateOf(0.0) }
     var lineGoodsCount by remember { mutableStateOf(0) }
@@ -188,6 +194,7 @@ fun CollectionScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (!lineActive) {
             item(key = "supplier_search") {
                 Card(
                     shape = RoundedCornerShape(20.dp),
@@ -261,6 +268,7 @@ fun CollectionScreen(
                     }
                 }
             }
+            }
 
             item(key = "supplier_line") {
                 Card(
@@ -283,10 +291,10 @@ fun CollectionScreen(
                             lineFinished -> {
                                 Text(
                                     text = "✅ Line पूरी हो गई! $lineSavedCount घरों से दूध लिया • " +
-                                        "कुल ${DairyFormatters.formatLiters(lineLiters)} • " +
-                                        DairyFormatters.formatRupees(lineAmount) +
+                                        "कुल ${DairyFormatters.formatLiters(lineLiters)} " +
+                                        "(rate dairy par FAT/SNF ke baad lagega)" +
                                         if (lineGoodsCount > 0) {
-                                            " • समान दिया: ${DairyFormatters.formatRupees(lineGoodsAmount)} ($lineGoodsCount बार)"
+                                            " • समान दिया: ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(lineGoodsAmount))} ($lineGoodsCount बार)"
                                         } else {
                                             ""
                                         },
@@ -305,11 +313,58 @@ fun CollectionScreen(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = "नीचे form में दूध भरो — 'दूध दर्ज करो' दबाते ही अगला घर अपने आप आ जाएगा। " +
-                                        "सैंपल नंबर बैग पर लिखा होता है, वही भरना।",
+                                    text = "Sirf sample number aur litre bharo — rate dairy par " +
+                                        "FAT/SNF ke baad lagega. Save dabate hi agla ghar khud khulega।",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                OutlinedTextField(
+                                    value = routeSample,
+                                    onValueChange = { routeSample = it },
+                                    label = { Text("1. Sample Number (botal/bag par likha)") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                OutlinedTextField(
+                                    value = routeQtyText,
+                                    onValueChange = { routeQtyText = it },
+                                    label = { Text("2. Doodh (Litre)") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    DeliveryShift.entries.forEach { option ->
+                                        FilterChip(
+                                            selected = shift == option,
+                                            onClick = { shift = option },
+                                            label = { Text(option.labelHi) }
+                                        )
+                                    }
+                                }
+                                Button(
+                                    onClick = {
+                                        val cName = roster.getOrNull(lineIndex)?.name ?: ""
+                                        if (cName.isNotBlank() && routeQty > 0.0) {
+                                            onSaveCollection(
+                                                cName, routeSample.trim(), shift,
+                                                routeQty, 0.0, 0.0, 0.0, 0.0
+                                            )
+                                            lineSavedCount += 1
+                                            lineLiters = DairyFormatters.roundTwoDecimals(lineLiters + routeQty)
+                                            routeSample = ""
+                                            routeQtyText = ""
+                                            advanceLine()
+                                        }
+                                    },
+                                    enabled = routeQty > 0.0,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "Doodh Save — Agla Ghar",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     OutlinedButton(onClick = { advanceLine() }) {
                                         Text("⏭ Skip — अगला घर")
@@ -508,6 +563,7 @@ fun CollectionScreen(
                 }
             }
 
+            if (!lineActive) {
             item(key = "collection_form") {
                 Card(
                     shape = RoundedCornerShape(20.dp),
@@ -594,6 +650,22 @@ fun CollectionScreen(
                                     )
                                 }
                             }
+                            OutlinedTextField(
+                                value = rateOverrideText,
+                                onValueChange = { rateOverrideText = it },
+                                label = { Text("Apna rate (₹/Litre) — khaali rakho to chart rate") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            if (rateOverride > 0.0) {
+                                Text(
+                                    text = "Is entry par tumhara rate lagega: ${DairyFormatters.formatRupees(rate)}/Litre",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
                         }
                         if (fatText.isBlank() && snfText.isBlank()) {
                             Text(
@@ -624,6 +696,7 @@ fun CollectionScreen(
                                 qtyText = ""
                                 fatText = ""
                                 snfText = ""
+                                rateOverrideText = ""
                             },
                             enabled = canSave,
                             modifier = Modifier.fillMaxWidth()
@@ -633,19 +706,35 @@ fun CollectionScreen(
                     }
                 }
             }
+            }
+
+            val pendingToday = todayCollections.filter { it.fat == 0.0 }
+            if (pendingToday.isNotEmpty()) {
+                item(key = "pending_title") {
+                    Text(
+                        text = "🏭 Dairy par FAT/SNF Bharo (${pendingToday.size}) — naam, sample, litre pehle se save hai, sirf FAT/SNF bharo, rate khud lagega",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                items(items = pendingToday, key = { "pend_${it.id}" }) { col ->
+                    PendingFatSnfRow(col = col, onUpdateFatSnf = onUpdateFatSnf, importedRates = snapshot.importedRates, rateOverrides = snapshot.rateOverrides)
+                }
+            }
 
             item(key = "day_totals") {
                 val dayGoods = snapshot.supplierTransactions.filter {
                     it.dateKey == selectedDateKey && it.type == "GOODS" && !it.isHome
                 }
-                val dayGoodsTotal = DairyFormatters.roundTwoDecimals(dayGoods.sumOf { it.amount })
+                val dayGoodsTotal = DairyFormatters.roundToRupee(dayGoods.sumOf { it.amount })
                 val goodsByItem = dayGoods
                     .groupBy { it.itemName to it.unit }
                     .map { (key, list) ->
                         Triple(
                             key.first,
                             key.second,
-                            DairyFormatters.roundTwoDecimals(list.sumOf { it.amount }) to
+                            DairyFormatters.roundToRupee(list.sumOf { it.amount }) to
                                 list.sumOf { it.quantity }
                         )
                     }
@@ -667,7 +756,7 @@ fun CollectionScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "🥛 कुल दूध लिया: ${DairyFormatters.formatLiters(todayLiters)} • ${DairyFormatters.formatRupees(todayAmount)}",
+                            text = "🥛 कुल दूध लिया: ${DairyFormatters.formatLiters(todayLiters)} • ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(todayAmount))}",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -768,21 +857,6 @@ fun CollectionScreen(
                 }
             }
 
-            val pendingToday = todayCollections.filter { it.fat == 0.0 }
-            if (pendingToday.isNotEmpty()) {
-                item(key = "pending_title") {
-                    Text(
-                        text = "⏳ FAT/SNF बाकी है (${pendingToday.size}) — sample number देखकर भरो",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-                items(items = pendingToday, key = { "pend_${it.id}" }) { col ->
-                    PendingFatSnfRow(col = col, onUpdateFatSnf = onUpdateFatSnf)
-                }
-            }
-
             if (snapshot.supplierSummaries.isNotEmpty()) {
                 item(key = "supplier_totals_title") {
                     Text(
@@ -824,10 +898,13 @@ fun CollectionScreen(
 @Composable
 private fun PendingFatSnfRow(
     col: MilkCollection,
-    onUpdateFatSnf: (MilkCollection, Double, Double) -> Unit
+    onUpdateFatSnf: (MilkCollection, Double, Double, Double) -> Unit,
+    importedRates: Map<String, Double>,
+    rateOverrides: Map<String, Double>
 ) {
     var fatText by remember(col.id) { mutableStateOf("") }
     var snfText by remember(col.id) { mutableStateOf("") }
+    var overrideText by remember(col.id) { mutableStateOf("") }
     val fat = fatText.toDoubleOrNull() ?: 0.0
     val snf = snfText.toDoubleOrNull() ?: 0.0
     Card(
@@ -870,12 +947,31 @@ private fun PendingFatSnfRow(
                     modifier = Modifier.weight(1f)
                 )
                 Button(
-                    onClick = { onUpdateFatSnf(col, fat, snf) },
+                    onClick = { onUpdateFatSnf(col, fat, snf, overrideText.toDoubleOrNull() ?: 0.0) },
                     enabled = fat > 0.0 && snf > 0.0,
                     modifier = Modifier.align(Alignment.CenterVertically)
                 ) {
                     Text("Rate लगाओ")
                 }
+            }
+            if (fat > 0.0 && snf > 0.0) {
+                val chartRate = RateChart.rateFor(fat, snf, importedRates, rateOverrides)
+                val effRate = overrideText.toDoubleOrNull()?.takeIf { it > 0.0 } ?: chartRate
+                Text(
+                    text = "Chart rate: ${DairyFormatters.formatRupees(chartRate)}/Litre • " +
+                        "Kul: ${DairyFormatters.formatRupees(DairyFormatters.roundTwoDecimals(col.quantityLiters * effRate))}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                OutlinedTextField(
+                    value = overrideText,
+                    onValueChange = { overrideText = it },
+                    label = { Text("Apna rate (₹/Litre) — khaali = chart rate") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
