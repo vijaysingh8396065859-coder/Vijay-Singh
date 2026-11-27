@@ -287,9 +287,9 @@ fun CustomerDetailScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 8.dp)
                             ) {
-                                MiniMonthStat("मासिक दूध", DairyFormatters.formatLiters(monthlyStatement.monthLiters))
-                                MiniMonthStat("मासिक बिल", DairyFormatters.formatRupees(monthlyStatement.monthBillAmount))
-                                MiniMonthStat("मासिक जमा", DairyFormatters.formatRupees(monthlyStatement.monthPaidAmount))
+                                MiniMonthStat("मासिक दूध", DairyFormatters.formatKg(monthlyStatement.monthLiters))
+                                MiniMonthStat("मासिक बिल", DairyFormatters.formatRupees(DairyFormatters.roundToRupee(monthlyStatement.monthBillAmount)))
+                                MiniMonthStat("मासिक जमा", DairyFormatters.formatRupees(DairyFormatters.roundToRupee(monthlyStatement.monthPaidAmount)))
                             }
                         }
                     }
@@ -372,8 +372,8 @@ private fun CustomerLedgerHeroCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = when {
-                            summaryDue > 0.0 -> "कुल शेष बकाया"
-                            summaryDue < 0.0 -> "कुल एडवांस जमा"
+                            summaryDue > 0.0 -> "कुल डेरी बाकी"
+                            summaryDue < 0.0 -> "कुल जमा"
                             else -> "खाता स्थिति"
                         },
                         style = MaterialTheme.typography.labelLarge,
@@ -381,8 +381,8 @@ private fun CustomerLedgerHeroCard(
                     )
                     Text(
                         text = when {
-                            summaryDue > 0.0 -> DairyFormatters.formatRupees(summaryDue)
-                            summaryDue < 0.0 -> DairyFormatters.formatRupees(-summaryDue)
+                            summaryDue > 0.0 -> DairyFormatters.formatRupees(DairyFormatters.roundToRupee(summaryDue))
+                            summaryDue < 0.0 -> DairyFormatters.formatRupees(DairyFormatters.roundToRupee(-summaryDue))
                             else -> "₹0 (साफ)"
                         },
                         style = MaterialTheme.typography.displaySmall,
@@ -394,7 +394,7 @@ private fun CustomerLedgerHeroCard(
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(
-                        text = "${customer.parsedMilkType.labelHi}\n${DairyFormatters.formatRupees(customer.ratePerLiter)}/ली.",
+                        text = "${customer.parsedMilkType.label}\n${DairyFormatters.formatRupees(customer.ratePerLiter)}/किलो",
                         style = MaterialTheme.typography.labelMedium,
                         color = Color.White,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -418,15 +418,15 @@ private fun CustomerLedgerHeroCard(
             ) {
                 Column {
                     Text("कुल दूध", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.78f))
-                    Text(DairyFormatters.formatLiters(totalMilkLiters), style = MaterialTheme.typography.titleMedium, color = Color.White)
+                    Text(DairyFormatters.formatKg(totalMilkLiters), style = MaterialTheme.typography.titleMedium, color = Color.White)
                 }
                 Column {
                     Text("कुल बिल", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.78f))
-                    Text(DairyFormatters.formatRupees(totalBilled), style = MaterialTheme.typography.titleMedium, color = Color.White)
+                    Text(DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalBilled)), style = MaterialTheme.typography.titleMedium, color = Color.White)
                 }
                 Column {
                     Text("कुल जमा", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.78f))
-                    Text(DairyFormatters.formatRupees(totalPaid), style = MaterialTheme.typography.titleMedium, color = Color.White)
+                    Text(DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalPaid)), style = MaterialTheme.typography.titleMedium, color = Color.White)
                 }
             }
         }
@@ -471,14 +471,14 @@ private fun CustomerMilkRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${DairyFormatters.formatShortDateHi(entry.dateKey)} • ${entry.parsedShift.labelHi}",
+                    text = "${DairyFormatters.formatShortDateHi(entry.dateKey)} • ${entry.parsedShift.label}",
                     style = MaterialTheme.typography.titleSmall
                 )
                 Text(
                     text = if (entry.absent) {
                         "छुट्टी / नागा"
                     } else {
-                        "${entry.parsedMilkType.labelHi} • ${DairyFormatters.formatLiters(entry.quantityLiters)} × ${DairyFormatters.formatRupees(entry.ratePerLiter)}"
+                        "${entry.parsedMilkType.label} • ${DairyFormatters.formatKg(entry.quantityLiters)} × ${DairyFormatters.formatRupees(entry.ratePerLiter)}"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -533,7 +533,7 @@ private fun CustomerPaymentRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${DairyFormatters.formatShortDateHi(payment.dateKey)} • ${payment.parsedMode.labelHi}",
+                    text = "${DairyFormatters.formatShortDateHi(payment.dateKey)} • ${payment.parsedMode.label}",
                     style = MaterialTheme.typography.titleSmall
                 )
                 if (payment.note.isNotBlank()) {
