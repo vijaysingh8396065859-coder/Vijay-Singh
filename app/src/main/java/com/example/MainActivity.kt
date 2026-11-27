@@ -105,6 +105,7 @@ import com.example.ui.components.MilkEntryFormDialog
 import com.example.ui.components.PaymentFormDialog
 import com.example.ui.screens.CollectionScreen
 import com.example.ui.screens.SupplierHisaabScreen
+import com.example.ui.screens.SupplierProfileScreen
 import com.example.ui.screens.CustomerDetailScreen
 import com.example.ui.screens.DairyDashboardScreen
 import com.example.ui.screens.CustomersScreen
