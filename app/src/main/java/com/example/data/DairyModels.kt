@@ -290,6 +290,13 @@ object DairyFormatters {
         return DecimalFormat("0.##").format(rounded)
     }
 
+    /** Vijay ka round-off rule: .50 tak neeche, .50 se upar upar wala rupaya (poora ₹). */
+    fun roundToRupee(value: Double): Double {
+        val sign = if (value < 0) -1.0 else 1.0
+        val absVal = kotlin.math.abs(value)
+        return sign * kotlin.math.floor(absVal + 0.49 + 1e-9)
+    }
+
     fun roundTwoDecimals(value: Double): Double =
         (value * 100.0).roundToLong() / 100.0
 }
