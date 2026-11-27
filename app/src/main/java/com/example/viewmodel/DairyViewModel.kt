@@ -664,10 +664,10 @@ class DairyViewModel(
         val monthLabel = DairyFormatters.formatMonthDisplayHi(monthKey)
         val balanceLine = when {
             statement.totalBalanceDue > 0.0 ->
-                "कुल शेष बकाया: ${DairyFormatters.formatRupees(statement.totalBalanceDue)}"
+                "कुल डेरी बाकी: ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(statement.totalBalanceDue))}"
             statement.totalBalanceDue < 0.0 ->
-                "कुल एडवांस जमा: ${DairyFormatters.formatRupees(-statement.totalBalanceDue)}"
-            else -> "कुल शेष बकाया: ₹0 (हिसाब बराबर)"
+                "कुल जमा: ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(-statement.totalBalanceDue))}"
+            else -> "कुल डेरी बाकी: ₹0 (हिसाब बराबर)"
         }
         return buildString {
             appendLine("मिल्क डायरी - मासिक दूध बिल")
@@ -675,7 +675,7 @@ class DairyViewModel(
             appendLine("महीना: $monthLabel")
             appendLine("------------------------")
             appendLine("दूध के दिन: ${statement.deliveredDaysCount} दिन (छुट्टी: ${statement.absentDaysCount} दिन)")
-            appendLine("कुल दूध: ${DairyFormatters.formatLiters(statement.monthLiters)}")
+            appendLine("कुल दूध: ${DairyFormatters.formatKg(statement.monthLiters)}")
             appendLine("इस महीने का बिल: ${DairyFormatters.formatRupees(statement.monthBillAmount)}")
             appendLine("इस महीने जमा पेमेंट: ${DairyFormatters.formatRupees(statement.monthPaidAmount)}")
             appendLine("------------------------")
