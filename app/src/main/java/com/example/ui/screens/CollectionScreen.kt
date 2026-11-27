@@ -16,6 +16,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,6 +62,7 @@ fun CollectionScreen(
     ) -> Unit,
     onDeleteCollection: (String) -> Unit,
     onUpdateFatSnf: (MilkCollection, Double, Double) -> Unit,
+    onAddGoods: (supplierName: String, itemName: String, quantity: Double, unit: String, ratePerUnit: Double, amount: Double) -> Unit,
     onAddSupplier: (String, String) -> Unit,
     onDeleteSupplier: (String) -> Unit,
     modifier: Modifier = Modifier
@@ -117,6 +119,15 @@ fun CollectionScreen(
     var lineIndex by remember { mutableStateOf(0) }
     var lineFinished by remember { mutableStateOf(false) }
     var lineSavedCount by remember { mutableStateOf(0) }
+    var lineGoodsAmount by remember { mutableStateOf(0.0) }
+    var lineGoodsCount by remember { mutableStateOf(0) }
+    var gItem by remember { mutableStateOf("") }
+    var gQtyText by remember { mutableStateOf("") }
+    var gUnit by remember { mutableStateOf("BORI") }
+    var gRateText by remember { mutableStateOf("") }
+    val gQty = gQtyText.toDoubleOrNull() ?: 0.0
+    val gRate = gRateText.toDoubleOrNull() ?: 0.0
+    val gTotal = DairyFormatters.roundTwoDecimals(gQty * gRate)
     var lineLiters by remember { mutableStateOf(0.0) }
     var lineAmount by remember { mutableStateOf(0.0) }
     val roster = snapshot.suppliers
@@ -270,7 +281,12 @@ fun CollectionScreen(
                                 Text(
                                     text = "✅ Line पूरी हो गई! $lineSavedCount घरों से दूध लिया • " +
                                         "कुल ${DairyFormatters.formatLiters(lineLiters)} • " +
-                                        DairyFormatters.formatRupees(lineAmount),
+                                        DairyFormatters.formatRupees(lineAmount) +
+                                        if (lineGoodsCount > 0) {
+                                            " • समान दिया: ${DairyFormatters.formatRupees(lineGoodsAmount)} ($lineGoodsCount बार)"
+                                        } else {
+                                            ""
+                                        },
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -298,6 +314,103 @@ fun CollectionScreen(
                                     OutlinedButton(onClick = { lineActive = false }) {
                                         Text("✖ Line बंद करो")
                                     }
+                                }
+                                HorizontalDivider()
+                                val currentName = roster.getOrNull(lineIndex)?.name ?: ""
+                                Text(
+                                    text = "📦 समान दिया — $currentName को (खल/चारा)",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf("सरसों खल", "खल", "चारा").forEach { preset ->
+                                        FilterChip(
+                                            selected = gItem == preset,
+                                            onClick = { gItem = preset },
+                                            label = { Text(preset) }
+                                        )
+                                    }
+                                }
+                                OutlinedTextField(
+                                    value = gItem,
+                                    onValueChange = { gItem = it },
+                                    label = { Text("समान का नाम") },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    OutlinedTextField(
+                                        value = gQtyText,
+                                        onValueChange = { gQtyText = it },
+                                        label = { Text("मात्रा") },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    OutlinedTextField(
+                                        value = gRateText,
+                                        onValueChange = { gRateText = it },
+                                        label = { Text("Rate (₹)") },
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    FilterChip(
+                                        selected = gUnit == "BORI",
+                                        onClick = { gUnit = "BORI" },
+                                        label = { Text("बोरी") }
+                                    )
+                                    FilterChip(
+                                        selected = gUnit == "KG",
+                                        onClick = { gUnit = "KG" },
+                                        label = { Text("किलो") }
+                                    )
+                                    if (gTotal > 0.0) {
+                                        Text(
+                                            text = "कुल: ${DairyFormatters.formatRupees(gTotal)}",
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                                Button(
+                                    onClick = {
+                                        onAddGoods(
+                                            currentName,
+                                            gItem.trim(),
+                                            gQty,
+                                            gUnit,
+                                            gRate,
+                                            gTotal
+                                        )
+                                        lineGoodsAmount = DairyFormatters.roundTwoDecimals(lineGoodsAmount + gTotal)
+                                        lineGoodsCount += 1
+                                        gQtyText = ""
+                                        gRateText = ""
+                                    },
+                                    enabled = currentName.isNotBlank() && gItem.isNotBlank() && gQty > 0.0 && gRate > 0.0,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("📦 समान जोड़ो")
+                                }
+                                val todaysGoodsForCurrent = snapshot.supplierTransactions.filter {
+                                    it.supplierName == currentName && it.dateKey == selectedDateKey &&
+                                        it.type == "GOODS" && !it.isHome
+                                }
+                                if (todaysGoodsForCurrent.isNotEmpty()) {
+                                    Text(
+                                        text = "आज इस घर को दिया: " + todaysGoodsForCurrent.joinToString(" • ") {
+                                            "${it.itemName} ${DairyFormatters.formatRupees(it.amount)}"
+                                        },
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                             else -> {
@@ -362,6 +475,8 @@ fun CollectionScreen(
                                 Button(
                                     onClick = {
                                         lineSavedCount = 0
+                                        lineGoodsAmount = 0.0
+                                        lineGoodsCount = 0
                                         lineLiters = 0.0
                                         lineAmount = 0.0
                                         lineIndex = 0
@@ -500,6 +615,65 @@ fun CollectionScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("दूध दर्ज करो")
+                        }
+                    }
+                }
+            }
+
+            item(key = "day_totals") {
+                val dayGoods = snapshot.supplierTransactions.filter {
+                    it.dateKey == selectedDateKey && it.type == "GOODS" && !it.isHome
+                }
+                val dayGoodsTotal = DairyFormatters.roundTwoDecimals(dayGoods.sumOf { it.amount })
+                val goodsByItem = dayGoods
+                    .groupBy { it.itemName to it.unit }
+                    .map { (key, list) ->
+                        Triple(
+                            key.first,
+                            key.second,
+                            DairyFormatters.roundTwoDecimals(list.sumOf { it.amount }) to
+                                list.sumOf { it.quantity }
+                        )
+                    }
+                val pendingCount = todayCollections.count { it.fat == 0.0 }
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "🧮 दिन का कुल जोड़ — ${DairyFormatters.formatShortDateHi(selectedDateKey)}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "🥛 कुल दूध लिया: ${DairyFormatters.formatLiters(todayLiters)} • ${DairyFormatters.formatRupees(todayAmount)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        if (pendingCount > 0) {
+                            Text(
+                                text = "⏳ $pendingCount sample का FAT/SNF बाकी है — उनकी रकम भरते ही इसमें जुड़ जाएगी।",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        Text(
+                            text = "📦 कुल समान दिया: ${DairyFormatters.formatRupees(dayGoodsTotal)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        goodsByItem.forEach { (itemName, unit, amtQty) ->
+                            Text(
+                                text = "• $itemName: ${amtQty.second} ${if (unit == "KG") "किलो" else "बोरी"} • ${DairyFormatters.formatRupees(amtQty.first)}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }
