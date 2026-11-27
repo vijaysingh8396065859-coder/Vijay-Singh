@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -130,6 +131,7 @@ const val ROUTE_REPORTS = "reports"
 const val ROUTE_RATE_CHART = "rate_chart"
 const val ROUTE_COLLECTION = "collection"
 const val ROUTE_SUPPLIER_HISAAB = "supplier_hisaab"
+const val ROUTE_SUPPLIER_PROFILE = "supplier_profile/{supplierName}"
 const val ROUTE_CUSTOMER_DETAIL = "customer_detail/{customerId}"
 
 private data class NavDestinationItem(
@@ -692,8 +694,13 @@ private fun MilkDiaryMainShell(
                                             isHome = false
                                         )
                                     },
-                                    onAddSupplier = { sName, sPhone ->
-                                        viewModel.addSupplier(sName, sPhone)
+                                    onAddSupplier = { sName, sPhone, sVillage ->
+                                        viewModel.addSupplier(sName, sPhone, sVillage)
+                                    },
+                                    onOpenProfile = { pName ->
+                                        navController.navigate(
+                                            "supplier_profile/" + Uri.encode(pName)
+                                        )
                                     },
                                     onDeleteSupplier = viewModel::deleteSupplier
                                 )
@@ -718,7 +725,30 @@ private fun MilkDiaryMainShell(
                                             isHome = sHome
                                         )
                                     },
-                                    onDeleteTransaction = viewModel::deleteSupplierTransaction
+                                    onDeleteTransaction = viewModel::deleteSupplierTransaction,
+                                    onOpenProfile = { pName ->
+                                        navController.navigate(
+                                            "supplier_profile/" + Uri.encode(pName)
+                                        )
+                                    }
+                                )
+                            }
+
+                            composable(
+                                route = ROUTE_SUPPLIER_PROFILE,
+                                arguments = listOf(
+                                    navArgument("supplierName") { type = NavType.StringType }
+                                )
+                            ) { backStackEntry ->
+                                val pName = backStackEntry.arguments
+                                    ?.getString("supplierName").orEmpty()
+                                SupplierProfileScreen(
+                                    snapshot = snapshot,
+                                    supplierName = pName,
+                                    onBack = { navController.popBackStack() },
+                                    onUpdateDetails = { sId, sPhone, sVillage ->
+                                        viewModel.updateSupplierDetails(sId, sPhone, sVillage)
+                                    }
                                 )
                             }
 
