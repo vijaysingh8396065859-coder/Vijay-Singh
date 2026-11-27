@@ -158,7 +158,7 @@ fun CustomerFormDialog(
                         FilterChip(
                             selected = milkType == type,
                             onClick = { milkType = type },
-                            label = { Text(type.labelHi) },
+                            label = { Text(type.label) },
                             leadingIcon = if (milkType == type) {
                                 { Icon(Icons.Rounded.Check, contentDescription = null) }
                             } else null
@@ -179,7 +179,7 @@ fun CustomerFormDialog(
                         FilterChip(
                             selected = defaultShift == shift,
                             onClick = { defaultShift = shift },
-                            label = { Text(shift.labelHi) }
+                            label = { Text(shift.label) }
                         )
                     }
                 }
@@ -191,7 +191,7 @@ fun CustomerFormDialog(
                     OutlinedTextField(
                         value = qtyText,
                         onValueChange = { qtyText = it; validationError = null },
-                        label = { Text("रोज़ मात्रा (ली.)") },
+                        label = { Text("रोज़ मात्रा (किलो)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier
@@ -201,7 +201,7 @@ fun CustomerFormDialog(
                     OutlinedTextField(
                         value = rateText,
                         onValueChange = { rateText = it; validationError = null },
-                        label = { Text("दर (₹/ली.)") },
+                        label = { Text("दर (₹/किलो)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier
@@ -213,7 +213,7 @@ fun CustomerFormDialog(
                 OutlinedTextField(
                     value = openingBalanceText,
                     onValueChange = { openingBalanceText = it; validationError = null },
-                    label = { Text("पुराना बकाया ₹ (एडवांस के लिए - लगाएं)") },
+                    label = { Text("पुराना डेरी बाकी ₹ (जमा के लिए - लगाएं)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
@@ -256,11 +256,11 @@ fun CustomerFormDialog(
                         trimmedName.isEmpty() ->
                             validationError = "कृपया ग्राहक का नाम लिखें।"
                         qty == null || qty < 0.0 || qty > 1000.0 ->
-                            validationError = "सही दूध की मात्रा (0 से 1000 लीटर) दर्ज करें।"
+                            validationError = "सही दूध की मात्रा (0 से 1000 किलो) दर्ज करें।"
                         rate == null || rate < 1.0 || rate > 1000.0 ->
-                            validationError = "सही दर (₹1 से ₹1000 प्रति लीटर) दर्ज करें।"
+                            validationError = "सही दर (₹1 से ₹1000 प्रति किलो) दर्ज करें।"
                         opening < -1000000.0 || opening > 1000000.0 ->
-                            validationError = "पुराना बकाया मान्य सीमा में दर्ज करें।"
+                            validationError = "पुराना डेरी बाकी मान्य सीमा में दर्ज करें।"
                         else -> onSave(
                             trimmedName,
                             phone.trim(),
@@ -393,7 +393,7 @@ fun MilkEntryFormDialog(
                             customers.forEach { cust ->
                                 DropdownMenuItem(
                                     text = {
-                                        Text("${cust.name} (${cust.parsedMilkType.labelHi} • ${DairyFormatters.formatRupees(cust.ratePerLiter)})")
+                                        Text("${cust.name} (${cust.parsedMilkType.label} • ${DairyFormatters.formatRupees(cust.ratePerLiter)})")
                                     },
                                     onClick = {
                                         selectedCustomer = cust
@@ -443,7 +443,7 @@ fun MilkEntryFormDialog(
                         FilterChip(
                             selected = shift == s,
                             onClick = { shift = s },
-                            label = { Text(s.labelHi) }
+                            label = { Text(s.label) }
                         )
                     }
                     Spacer(modifier = Modifier.width(4.dp))
@@ -451,7 +451,7 @@ fun MilkEntryFormDialog(
                         FilterChip(
                             selected = milkType == t,
                             onClick = { milkType = t },
-                            label = { Text(t.labelHi) }
+                            label = { Text(t.label) }
                         )
                     }
                 }
@@ -480,7 +480,7 @@ fun MilkEntryFormDialog(
                             FilterChip(
                                 selected = qtyText == preset,
                                 onClick = { qtyText = preset; validationError = null },
-                                label = { Text("$preset ली.") }
+                                label = { Text("$preset किलो") }
                             )
                         }
                     }
@@ -492,7 +492,7 @@ fun MilkEntryFormDialog(
                         OutlinedTextField(
                             value = qtyText,
                             onValueChange = { qtyText = it; validationError = null },
-                            label = { Text("मात्रा (लीटर)") },
+                            label = { Text("मात्रा (किलो)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
                             modifier = Modifier
@@ -502,7 +502,7 @@ fun MilkEntryFormDialog(
                         OutlinedTextField(
                             value = rateText,
                             onValueChange = { rateText = it; validationError = null },
-                            label = { Text("दर (₹/ली.)") },
+                            label = { Text("दर (₹/किलो)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
                             modifier = Modifier
@@ -671,7 +671,7 @@ fun PaymentFormDialog(
                                 val due = summaryByCustomerId[cust.id]?.balanceDue ?: 0.0
                                 DropdownMenuItem(
                                     text = {
-                                        Text("${cust.name} • बकाया ${DairyFormatters.formatRupees(due)}")
+                                        Text("${cust.name} • डेरी बाकी ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(due))}")
                                     },
                                     onClick = {
                                         selectedCustomer = cust
@@ -706,12 +706,12 @@ fun PaymentFormDialog(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
-                                text = if (currentDue >= 0) "कुल बकाया" else "एडवांस जमा",
+                                text = if (currentDue >= 0) "कुल डेरी बाकी" else "जमा",
                                 style = MaterialTheme.typography.labelLarge
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = DairyFormatters.formatRupees(kotlin.math.abs(currentDue)),
+                                    text = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(kotlin.math.abs(currentDue))),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -775,7 +775,7 @@ fun PaymentFormDialog(
                         FilterChip(
                             selected = paymentMode == mode,
                             onClick = { paymentMode = mode },
-                            label = { Text(mode.labelHi) },
+                            label = { Text(mode.label) },
                             leadingIcon = if (paymentMode == mode) {
                                 { Icon(Icons.Rounded.Check, contentDescription = null) }
                             } else null
