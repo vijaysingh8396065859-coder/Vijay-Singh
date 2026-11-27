@@ -319,6 +319,7 @@ data class MilkSupplier(
     val userId: String = "",
     val name: String = "",
     val phone: String = "",
+    val village: String = "",
     val sortOrder: Long = 0,
     @ServerTimestamp val createdAt: Date? = null,
     @ServerTimestamp val updatedAt: Date? = null
