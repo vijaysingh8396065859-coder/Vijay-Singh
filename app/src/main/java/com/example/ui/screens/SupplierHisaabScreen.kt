@@ -118,23 +118,26 @@ fun SupplierHisaabScreen(
                 txns.filter { it.type == type && it.dateKey < cycleStart }.sumOf { it.amount }
             fun sumCycle(type: String) =
                 txns.filter { it.type == type && it.dateKey in cycleStart..cycleEnd }.sumOf { it.amount }
-            val balanceBefore = milkBefore - (sumBefore("GOODS") + sumBefore("ADVANCE") + sumBefore("PAYMENT"))
-            val goodsCycle = sumCycle("GOODS")
-            val advanceCycle = sumCycle("ADVANCE")
-            val paymentCycle = sumCycle("PAYMENT")
-            val cycleDue = balanceBefore + milkCycle - goodsCycle - advanceCycle - paymentCycle
+            val balanceBefore = DairyFormatters.roundToRupee(
+                milkBefore - (sumBefore("GOODS") + sumBefore("ADVANCE") + sumBefore("PAYMENT"))
+            )
+            val milkCycleRounded = DairyFormatters.roundToRupee(milkCycle)
+            val goodsCycle = DairyFormatters.roundToRupee(sumCycle("GOODS"))
+            val advanceCycle = DairyFormatters.roundToRupee(sumCycle("ADVANCE"))
+            val paymentCycle = DairyFormatters.roundToRupee(sumCycle("PAYMENT"))
+            val cycleDue = balanceBefore + milkCycleRounded - goodsCycle - advanceCycle - paymentCycle
             val overall = milk.sumOf { it.totalAmount } - txns.sumOf { it.amount }
             val cycleTxns = txns.filter { it.dateKey in cycleStart..cycleEnd }
             HisaabCalc(
                 milkCycleList = milkCycleList,
-                milkCycle = milkCycle,
+                milkCycle = milkCycleRounded,
                 milkCycleLiters = milkCycleLiters,
-                balanceBefore = DairyFormatters.roundTwoDecimals(balanceBefore),
+                balanceBefore = balanceBefore,
                 goodsCycle = goodsCycle,
                 advanceCycle = advanceCycle,
                 paymentCycle = paymentCycle,
                 cycleDue = DairyFormatters.roundTwoDecimals(cycleDue),
-                overall = DairyFormatters.roundTwoDecimals(overall),
+                overall = DairyFormatters.roundToRupee(overall),
                 cycleTxns = cycleTxns
             )
         }
@@ -268,6 +271,66 @@ fun SupplierHisaabScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            item(key = "cycle_totals_all") {
+                val cycMilk = DairyFormatters.roundToRupee(
+                    snapshot.collections.filter { it.dateKey in cycleStart..cycleEnd }
+                        .sumOf { it.totalAmount }
+                )
+                val cycGoods = DairyFormatters.roundToRupee(
+                    snapshot.supplierTransactions.filter {
+                        !it.isHome && it.type == "GOODS" && it.dateKey in cycleStart..cycleEnd
+                    }.sumOf { it.amount }
+                )
+                val cycAdv = DairyFormatters.roundToRupee(
+                    snapshot.supplierTransactions.filter {
+                        !it.isHome && it.type == "ADVANCE" && it.dateKey in cycleStart..cycleEnd
+                    }.sumOf { it.amount }
+                )
+                val cycPay = DairyFormatters.roundToRupee(
+                    snapshot.supplierTransactions.filter {
+                        !it.isHome && it.type == "PAYMENT" && it.dateKey in cycleStart..cycleEnd
+                    }.sumOf { it.amount }
+                )
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "🧮 Sab Suppliers — Cycle ka Kul Jod",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${DairyFormatters.formatShortDateHi(cycleStart)} — ${DairyFormatters.formatShortDateHi(cycleEnd)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "🥛 Kul doodh ki keemat: ${DairyFormatters.formatRupees(cycMilk)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "📦 Samaan: ${DairyFormatters.formatRupees(cycGoods)} • 💵 Advance: ${DairyFormatters.formatRupees(cycAdv)} • 💰 Payment: ${DairyFormatters.formatRupees(cycPay)}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Katauti ke baad cycle ka shudh: ${DairyFormatters.formatRupees(cycMilk - cycGoods - cycAdv - cycPay)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
             if (supplierNames.isNotEmpty()) {
                 item(key = "supplier_picker") {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
