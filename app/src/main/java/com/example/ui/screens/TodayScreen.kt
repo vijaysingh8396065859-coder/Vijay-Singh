@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -182,6 +183,7 @@ fun TodayScreen(
                             Text(
                                 text = "${selectedShift.label} की बाकी एंट्री (${pendingCustomersForShift.size})",
                                 style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
@@ -219,6 +221,7 @@ fun TodayScreen(
                         Text(
                             text = "दर्ज दूध एंट्रियाँ (${dayShiftEntries.size})",
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         if (dayEntries.size > dayShiftEntries.size) {
@@ -283,19 +286,22 @@ private fun DateAndShiftHeader(
     onResetToday: () -> Unit,
     onSelectShift: (DeliveryShift) -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(18.dp),
-            tonalElevation = 1.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
-        ) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(MeadowEmerald, MeadowEmeraldLight)
+                )
+            )
+            .padding(16.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(
                     onClick = { onChangeDate(-1) },
@@ -303,64 +309,74 @@ private fun DateAndShiftHeader(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowLeft,
-                        contentDescription = stringResource(R.string.cd_prev_date)
+                        contentDescription = stringResource(R.string.cd_prev_date),
+                        tint = Color.White
                     )
                 }
-
                 TextButton(
                     onClick = onResetToday,
                     modifier = Modifier.testTag("today_date_label")
                 ) {
                     Text(
                         text = DairyFormatters.formatDateDisplayHi(selectedDateKey),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
-
                 IconButton(
                     onClick = { onChangeDate(1) },
                     modifier = Modifier.testTag("next_date_button")
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = stringResource(R.string.cd_next_date)
+                        contentDescription = stringResource(R.string.cd_next_date),
+                        tint = Color.White
                     )
                 }
             }
-        }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            DeliveryShift.entries.forEach { shift ->
-                val selected = selectedShift == shift
-                FilterChip(
-                    selected = selected,
-                    onClick = { onSelectShift(shift) },
-                    label = {
-                        Text(
-                            text = "${shift.label} की शिफ्ट",
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = if (shift == DeliveryShift.MORNING) {
-                                Icons.Rounded.WbSunny
-                            } else {
-                                Icons.Rounded.NightsStay
-                            },
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                        .testTag("shift_chip_${shift.name.lowercase()}")
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.18f))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                DeliveryShift.entries.forEach { shift ->
+                    val selected = selectedShift == shift
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (selected) Color.White else Color.Transparent)
+                            .clickable { onSelectShift(shift) }
+                            .testTag("shift_chip_${shift.name.lowercase()}"),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (shift == DeliveryShift.MORNING) {
+                                    Icons.Rounded.WbSunny
+                                } else {
+                                    Icons.Rounded.NightsStay
+                                },
+                                contentDescription = null,
+                                tint = if (selected) MeadowEmerald else Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = shift.label,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = if (selected) MeadowEmerald else Color.White
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -373,36 +389,34 @@ private fun TodayHeroSummaryCard(
     totalCollected: Double,
     entryCount: Int
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(MeadowEmerald, MeadowEmeraldLight)
-                )
-            )
-            .padding(20.dp)
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "आज का दूध व वसूली सारांश",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.88f)
+                    text = com.example.ui.AppLang.s("आज का सारांश", "Today's Summary"),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
                 Surface(
-                    color = Color.White.copy(alpha = 0.16f),
+                    color = MaterialTheme.colorScheme.primaryContainer,
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
-                        text = "$entryCount एंट्री",
+                        text = "$entryCount " + com.example.ui.AppLang.s("एंट्री", "entries"),
                         style = MaterialTheme.typography.labelMedium,
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
@@ -419,12 +433,12 @@ private fun TodayHeroSummaryCard(
                 )
                 HeroStatBlock(
                     label = com.example.ui.AppLang.s("दूध का बिल", "Milk Bill"),
-                    value = DairyFormatters.formatRupees(totalBill),
+                    value = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalBill)),
                     modifier = Modifier.weight(1f)
                 )
                 HeroStatBlock(
                     label = com.example.ui.AppLang.s("प्राप्त पेमेंट", "Payments Received"),
-                    value = DairyFormatters.formatRupees(totalCollected),
+                    value = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalCollected)),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -442,14 +456,14 @@ private fun HeroStatBlock(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.78f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.primary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -473,11 +487,10 @@ private fun QuickDeliveryCustomerCard(
     Card(
         onClick = onOpenDetail,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(24.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(20.dp))
             .testTag("quick_customer_card_${customer.id}")
     ) {
         Column(
@@ -490,16 +503,20 @@ private fun QuickDeliveryCustomerCard(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(MeadowEmerald, MeadowEmeraldLight)
+                            )
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = customer.name.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color.White
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
@@ -536,8 +553,8 @@ private fun QuickDeliveryCustomerCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(14.dp)
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(
@@ -573,7 +590,7 @@ private fun QuickDeliveryCustomerCard(
                     onClick = onMarkAbsent,
                     contentPadding = PaddingValues(horizontal = 10.dp),
                     modifier = Modifier
-                        .height(44.dp)
+                        .height(48.dp)
                         .testTag("quick_absent_btn_${customer.id}")
                 ) {
                     Icon(
@@ -590,7 +607,7 @@ private fun QuickDeliveryCustomerCard(
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
+                        .height(48.dp)
                         .testTag("quick_log_btn_${customer.id}")
                 ) {
                     Icon(
@@ -626,10 +643,10 @@ private fun LoggedMilkEntryCard(
                 MaterialTheme.colorScheme.surface
             }
         ),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(18.dp))
             .testTag("logged_entry_card_${entry.id}")
     ) {
         Row(
@@ -638,6 +655,17 @@ private fun LoggedMilkEntryCard(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(5.dp)
+                    .height(46.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(
+                        if (entry.absent) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary
+                    )
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -733,9 +761,8 @@ private fun EmptyDairyWelcomeCard(onAddCustomerClick: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(24.dp))
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
