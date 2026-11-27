@@ -662,7 +662,7 @@ class DairyRepository(
         )
     }
 
-    suspend fun addSupplier(userId: String, name: String, phone: String): Result<Unit> {
+    suspend fun addSupplier(userId: String, name: String, phone: String, village: String = ""): Result<Unit> {
         var docPath = "users/$userId/suppliers"
         return try {
             val uid = requireUserId(userId)
@@ -674,6 +674,7 @@ class DairyRepository(
                 "userId" to uid,
                 "name" to cleanName,
                 "phone" to phone.trim(),
+                "village" to village.trim(),
                 "sortOrder" to System.currentTimeMillis(),
                 "createdAt" to FieldValue.serverTimestamp(),
                 "updatedAt" to FieldValue.serverTimestamp()
@@ -684,6 +685,29 @@ class DairyRepository(
             throw e
         } catch (e: Exception) {
             handleFirestoreError(e, OperationType.CREATE, docPath)
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateSupplierDetails(userId: String, supplierId: String, phone: String, village: String): Result<Unit> {
+        var docPath = "users/$userId/suppliers/$supplierId"
+        return try {
+            val uid = requireUserId(userId)
+            val docRef = db.collection("users").document(uid)
+                .collection("suppliers").document(supplierId)
+            docPath = docRef.path
+            docRef.update(
+                mapOf(
+                    "phone" to phone.trim(),
+                    "village" to village.trim(),
+                    "updatedAt" to FieldValue.serverTimestamp()
+                )
+            ).await()
+            Result.success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            handleFirestoreError(e, OperationType.UPDATE, docPath)
             Result.failure(e)
         }
     }
