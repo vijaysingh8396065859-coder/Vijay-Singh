@@ -25,6 +25,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FileDownload
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -75,7 +77,8 @@ fun DairyDashboardScreen(
     onOpenSupplierHisaab: () -> Unit = {},
     onCheckUpdate: () -> Unit = {},
     onOpenGaltiCheck: () -> Unit = {},
-    onOpenGuide: () -> Unit = {}
+    onOpenGuide: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
 ) {
     val todayKey = remember { DairyFormatters.todayDateKey() }
 
@@ -153,12 +156,22 @@ fun DairyDashboardScreen(
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = "🥛 Milk Diary",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "🥛 Milk Diary",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = onOpenSettings) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Settings,
+                                    contentDescription = "Settings",
+                                    tint = Color.White
+                                )
+                            }
+                        }
                         Text(
                             text = "आपका विश्वास ही हमारी पहचान है",
                             style = MaterialTheme.typography.bodyMedium,
@@ -233,14 +246,12 @@ fun DairyDashboardScreen(
                         DashActionCard(
                             emoji = "🥛",
                             title = "Doodh Collection",
-                            desc = "Route par ghar-ghar doodh, bina rate save",
                             modifier = Modifier.weight(1f),
                             onClick = onOpenCollection
                         )
                         DashActionCard(
                             emoji = "📋",
                             title = "Supplier Hisaab",
-                            desc = "10 din ka hisaab aur WhatsApp sheet",
                             modifier = Modifier.weight(1f),
                             onClick = onOpenSupplierHisaab
                         )
@@ -249,14 +260,12 @@ fun DairyDashboardScreen(
                         DashActionCard(
                             emoji = "📈",
                             title = "Rate Chart",
-                            desc = "FAT/SNF rate list dekho ya badlo",
                             modifier = Modifier.weight(1f),
                             onClick = onOpenRateChart
                         )
                         DashActionCard(
                             emoji = "⚠️",
                             title = "Galti Check",
-                            desc = "Duplicate aur galtiyaan pehle pakdo",
                             modifier = Modifier.weight(1f),
                             onClick = onOpenGaltiCheck
                         )
@@ -415,17 +424,17 @@ fun DairyDashboardScreen(
     }
 }
 
-private fun buildBackupCsv(snapshot: DairyDataSnapshot): String {
+fun buildBackupCsv(snapshot: DairyDataSnapshot): String {
     val sb = StringBuilder()
     sb.appendLine("Milk Diary - Poora Hisaab Backup")
     sb.appendLine()
     sb.appendLine("=== GRAAHAK ===")
-    sb.appendLine("Naam,Phone,Kisam,Rate(per liter),Kul Doodh(L),Kul Bill,Bhugtan,Baaki")
+    sb.appendLine("Naam,Phone,Kisam,Rate(per kg),Kul Doodh(kg),Kul Bill,Bhugtan,Deri Baaki")
     snapshot.customerSummaries.forEach { sum ->
         val c = sum.customer
         sb.appendLine(
             listOf(
-                c.name, c.phone, c.parsedMilkType.labelHi,
+                c.name, c.phone, c.parsedMilkType.label,
                 c.ratePerLiter.toString(), sum.totalMilkLiters.toString(),
                 sum.totalMilkAmount.toString(), sum.totalPaidAmount.toString(),
                 sum.balanceDue.toString()
@@ -438,7 +447,7 @@ private fun buildBackupCsv(snapshot: DairyDataSnapshot): String {
     snapshot.milkEntries.sortedBy { it.dateKey }.forEach { e ->
         sb.appendLine(
             listOf(
-                e.dateKey, e.parsedShift.labelHi, e.customerName, e.parsedMilkType.labelHi,
+                e.dateKey, e.parsedShift.label, e.customerName, e.parsedMilkType.label,
                 e.quantityLiters.toString(), e.ratePerLiter.toString(),
                 e.totalAmount.toString(), if (e.absent) "Haan" else "Nahi"
             ).joinToString(",") { it.replace(",", " ") }
@@ -450,7 +459,7 @@ private fun buildBackupCsv(snapshot: DairyDataSnapshot): String {
     snapshot.payments.sortedBy { it.dateKey }.forEach { pay ->
         sb.appendLine(
             listOf(
-                pay.dateKey, pay.customerName, pay.amount.toString(), pay.parsedMode.labelHi
+                pay.dateKey, pay.customerName, pay.amount.toString(), pay.parsedMode.label
             ).joinToString(",") { it.replace(",", " ") }
         )
     }
@@ -541,7 +550,7 @@ private fun TodaySaleCard(
             ) {
                 SaleStatChip(
                     label = "दूध",
-                    value = DairyFormatters.formatLiters(totalLiters),
+                    value = DairyFormatters.formatKg(totalLiters),
                     modifier = Modifier.weight(1f)
                 )
                 SaleStatChip(
@@ -624,14 +633,14 @@ private fun MilkTypeBreakdownCard(
                                 .background(dotColor)
                         )
                         Text(
-                            text = "  ${type.labelHi} का दूध",
+                            text = "  ${type.label} का दूध",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.weight(1f))
                         Text(
-                            text = "${DairyFormatters.formatLiters(liters)} • ${DairyFormatters.formatRupees(amount)}",
+                            text = "${DairyFormatters.formatKg(liters)} • ${DairyFormatters.formatRupees(amount)}",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -705,7 +714,7 @@ private fun CustomerHisaabCard(row: CustomerHisaabRow) {
                 }
             }
             Text(
-                text = "${customer.parsedMilkType.labelHi} • रेट ${DairyFormatters.formatRupees(customer.ratePerLiter)}/ली.",
+                text = "${customer.parsedMilkType.label} • रेट ${DairyFormatters.formatRupees(customer.ratePerLiter)}/ली.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -716,7 +725,7 @@ private fun CustomerHisaabCard(row: CustomerHisaabRow) {
                         "आखिरी एंट्री: ${DairyFormatters.formatShortDateHi(lastEntry.dateKey)} • अनुपस्थित"
                     } else {
                         "आखिरी दूध: ${DairyFormatters.formatShortDateHi(lastEntry.dateKey)} • " +
-                            "${DairyFormatters.formatLiters(lastEntry.quantityLiters)} • " +
+                            "${DairyFormatters.formatKg(lastEntry.quantityLiters)} • " +
                             DairyFormatters.formatRupees(lastEntry.totalAmount)
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -727,7 +736,7 @@ private fun CustomerHisaabCard(row: CustomerHisaabRow) {
             if (lastPayment != null) {
                 Text(
                     text = "आखिरी पेमेंट: ${DairyFormatters.formatShortDateHi(lastPayment.dateKey)} • " +
-                        "${DairyFormatters.formatRupees(lastPayment.amount)} (${lastPayment.parsedMode.labelHi})",
+                        "${DairyFormatters.formatRupees(lastPayment.amount)} (${lastPayment.parsedMode.label})",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -817,11 +826,11 @@ private fun DailySummaryCard(snapshot: DairyDataSnapshot) {
             }
             SummaryLine(
                 label = "आया दूध (सुबह ${DairyFormatters.formatLiters(morningLiters)} + शाम ${DairyFormatters.formatLiters(eveningLiters)})",
-                value = "${DairyFormatters.formatLiters(collLiters)} • ${DairyFormatters.formatRupees(collAmount)}"
+                value = "${DairyFormatters.formatLiters(collLiters)} • ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(collAmount))}"
             )
             SummaryLine(
                 label = "Local sale (ग्राहक बिक्री)",
-                value = "${DairyFormatters.formatLiters(saleLiters)} • ${DairyFormatters.formatRupees(saleAmount)}"
+                value = "${DairyFormatters.formatKg(saleLiters)} • ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(saleAmount))}"
             )
             HorizontalDivider()
             SummaryLine(
@@ -863,7 +872,6 @@ private fun SummaryLine(label: String, value: String) {
 private fun DashActionCard(
     emoji: String,
     title: String,
-    desc: String,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
@@ -885,11 +893,6 @@ private fun DashActionCard(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = desc,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
