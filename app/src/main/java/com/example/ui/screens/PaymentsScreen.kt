@@ -83,17 +83,17 @@ fun PaymentsScreen(
     }
 
     val todayTotal = remember(snapshot.payments, todayKey) {
-        snapshot.payments.filter { it.dateKey == todayKey }.sumOf { it.amount }
+        DairyFormatters.roundToRupee(snapshot.payments.filter { it.dateKey == todayKey }.sumOf { it.amount })
     }
-    val monthTotal = remember(monthPayments) { monthPayments.sumOf { it.amount } }
+    val monthTotal = remember(monthPayments) { DairyFormatters.roundToRupee(monthPayments.sumOf { it.amount }) }
     val cashTotal = remember(monthPayments) {
-        monthPayments.filter { it.parsedMode == PaymentMode.CASH }.sumOf { it.amount }
+        DairyFormatters.roundToRupee(monthPayments.filter { it.parsedMode == PaymentMode.CASH }.sumOf { it.amount })
     }
     val upiTotal = remember(monthPayments) {
-        monthPayments.filter { it.parsedMode == PaymentMode.UPI }.sumOf { it.amount }
+        DairyFormatters.roundToRupee(monthPayments.filter { it.parsedMode == PaymentMode.UPI }.sumOf { it.amount })
     }
     val bankTotal = remember(monthPayments) {
-        monthPayments.filter { it.parsedMode == PaymentMode.BANK }.sumOf { it.amount }
+        DairyFormatters.roundToRupee(monthPayments.filter { it.parsedMode == PaymentMode.BANK }.sumOf { it.amount })
     }
 
     Box(
@@ -214,7 +214,7 @@ fun PaymentsScreen(
                         FilterChip(
                             selected = modeFilter == mode,
                             onClick = { modeFilter = if (modeFilter == mode) null else mode },
-                            label = { Text(mode.labelHi) }
+                            label = { Text(mode.label) }
                         )
                     }
                 }
@@ -359,7 +359,7 @@ private fun PaymentHistoryCard(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${DairyFormatters.formatDateDisplayHi(payment.dateKey)} • ${payment.parsedMode.labelHi}",
+                    text = "${DairyFormatters.formatDateDisplayHi(payment.dateKey)} • ${payment.parsedMode.label}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
