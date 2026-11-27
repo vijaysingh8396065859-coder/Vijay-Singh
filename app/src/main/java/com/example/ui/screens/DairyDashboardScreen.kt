@@ -252,6 +252,98 @@ fun DairyDashboardScreen(
                 }
             }
 
+            item(key = "dash_today_report") {
+                val tKey = DairyFormatters.todayDateKey()
+                val tCols = snapshot.collections.filter { it.dateKey == tKey }
+                val tLitres = DairyFormatters.roundTwoDecimals(tCols.sumOf { it.quantityLiters })
+                val tAmount = DairyFormatters.roundTwoDecimals(tCols.sumOf { it.totalAmount })
+                val tSuppliers = tCols.map { it.supplierName }.distinct().size
+                val tPending = tCols.count { it.fat == 0.0 }
+                val tGoods = DairyFormatters.roundTwoDecimals(
+                    snapshot.supplierTransactions.filter {
+                        it.dateKey == tKey && it.type == "GOODS" && !it.isHome
+                    }.sumOf { it.amount }
+                )
+                val tAdvPay = DairyFormatters.roundTwoDecimals(
+                    snapshot.supplierTransactions.filter {
+                        it.dateKey == tKey && (it.type == "ADVANCE" || it.type == "PAYMENT") && !it.isHome
+                    }.sumOf { it.amount }
+                )
+                val tDay = tKey.split("-").getOrNull(2)?.toIntOrNull() ?: 0
+                val nextSettle = if (tDay == 1 || tDay == 11 || tDay == 21) {
+                    tKey
+                } else {
+                    DairyFormatters.shiftDateKey(DairyFormatters.cycleEndKey(tKey), 1)
+                }
+                val allNames = (
+                    snapshot.collections.map { it.supplierName } +
+                        snapshot.supplierTransactions.filter { !it.isHome }.map { it.supplierName }
+                    ).distinct()
+                var denaTotal = 0.0
+                var dairyBaakiTotal = 0.0
+                allNames.forEach { n ->
+                    val bal = snapshot.collections.filter { it.supplierName == n }
+                        .sumOf { it.totalAmount } -
+                        snapshot.supplierTransactions.filter { it.supplierName == n && !it.isHome }
+                            .sumOf { it.amount }
+                    if (bal > 0) denaTotal += bal else dairyBaakiTotal += -bal
+                }
+                Card(
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = "📊 Aaj ka Report",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "🥛 Aaj ka doodh: ${DairyFormatters.formatLiters(tLitres)} • " +
+                                DairyFormatters.formatRupees(tAmount),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "👥 Suppliers jinse doodh aaya: $tSuppliers • ⏳ FAT/SNF pending: $tPending",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "📦 Aaj samaan diya: ${DairyFormatters.formatRupees(tGoods)} • " +
+                                "💵 Advance/Payment: ${DairyFormatters.formatRupees(tAdvPay)}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = if (nextSettle == tKey) {
+                                "📋 Settlement: AAJ hi hisaab ka din hai!"
+                            } else {
+                                "📋 Agla Settlement: ${DairyFormatters.formatShortDateHi(nextSettle)}"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "💰 Kul pending hisaab (dena hai): " +
+                                DairyFormatters.formatRupees(DairyFormatters.roundTwoDecimals(denaTotal)) +
+                                if (dairyBaakiTotal > 0.0) {
+                                    " • डेरी बाकी: " +
+                                        DairyFormatters.formatRupees(DairyFormatters.roundTwoDecimals(dairyBaakiTotal))
+                                } else {
+                                    ""
+                                },
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
             item(key = "dash_daily_summary") {
                 DailySummaryCard(snapshot = snapshot)
             }
