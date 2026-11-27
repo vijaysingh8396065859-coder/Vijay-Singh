@@ -677,6 +677,21 @@ private fun MilkDiaryMainShell(
                                     onUpdateFatSnf = { colEntry, fVal, sVal ->
                                         viewModel.updateCollectionFatSnf(colEntry, fVal, sVal)
                                     },
+                                    onAddGoods = { gName, gItem, gQty, gUnit, gRate, gAmt ->
+                                        viewModel.addSupplierTransaction(
+                                            supplierName = gName,
+                                            type = "GOODS",
+                                            itemName = gItem,
+                                            quantity = gQty,
+                                            unit = gUnit,
+                                            ratePerUnit = gRate,
+                                            amount = gAmt,
+                                            paymentMode = "CASH",
+                                            note = "",
+                                            dateKey = selectedDateKey,
+                                            isHome = false
+                                        )
+                                    },
                                     onAddSupplier = { sName, sPhone ->
                                         viewModel.addSupplier(sName, sPhone)
                                     },
