@@ -82,6 +82,7 @@ fun SupplierHisaabScreen(
         isHome: Boolean
     ) -> Unit,
     onDeleteTransaction: (String) -> Unit,
+    onOpenProfile: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -284,6 +285,17 @@ fun SupplierHisaabScreen(
                                 )
                             }
                         }
+                    }
+                }
+            }
+
+            if (supplier != null) {
+                item(key = "profile_link") {
+                    OutlinedButton(
+                        onClick = { onOpenProfile(supplier) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("👤 $supplier की Profile देखो (पूरा record)")
                     }
                 }
             }
