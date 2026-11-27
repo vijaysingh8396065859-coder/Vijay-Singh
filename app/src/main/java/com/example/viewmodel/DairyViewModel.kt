@@ -465,7 +465,7 @@ class DairyViewModel(
         }
     }
 
-    fun addSupplier(name: String, phone: String = "") {
+    fun addSupplier(name: String, phone: String = "", village: String = "") {
         val cleanName = name.trim()
         if (cleanName.isEmpty()) {
             _snackbarMessage.value = "Supplier का नाम लिखो।"
@@ -473,12 +473,25 @@ class DairyViewModel(
         }
         viewModelScope.launch {
             _isMutating.value = true
-            val result = repository.addSupplier(currentUserId, cleanName, phone.trim())
+            val result = repository.addSupplier(currentUserId, cleanName, phone.trim(), village.trim())
             _isMutating.value = false
             result.onSuccess {
                 _snackbarMessage.value = "Supplier जुड़ गया: $cleanName"
             }.onFailure { err ->
                 _snackbarMessage.value = err.localizedMessage ?: "Supplier जोड़ने में त्रुटि हुई।"
+            }
+        }
+    }
+
+    fun updateSupplierDetails(supplierId: String, phone: String, village: String) {
+        viewModelScope.launch {
+            _isMutating.value = true
+            val result = repository.updateSupplierDetails(currentUserId, supplierId, phone, village)
+            _isMutating.value = false
+            result.onSuccess {
+                _snackbarMessage.value = "Supplier ki jaankari save ho gayi"
+            }.onFailure { err ->
+                _snackbarMessage.value = err.localizedMessage ?: "Jaankari save karne mein truti hui."
             }
         }
     }
