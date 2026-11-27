@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -63,7 +64,8 @@ fun CollectionScreen(
     onDeleteCollection: (String) -> Unit,
     onUpdateFatSnf: (MilkCollection, Double, Double) -> Unit,
     onAddGoods: (supplierName: String, itemName: String, quantity: Double, unit: String, ratePerUnit: Double, amount: Double) -> Unit,
-    onAddSupplier: (String, String) -> Unit,
+    onAddSupplier: (String, String, String) -> Unit,
+    onOpenProfile: (String) -> Unit,
     onDeleteSupplier: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -115,6 +117,7 @@ fun CollectionScreen(
     // --- Line mode (ghar-ghar collection, automatic next) ---
     var newSupplierName by remember { mutableStateOf("") }
     var newSupplierPhone by remember { mutableStateOf("") }
+    var newSupplierVillage by remember { mutableStateOf("") }
     var lineActive by remember { mutableStateOf(false) }
     var lineIndex by remember { mutableStateOf(0) }
     var lineFinished by remember { mutableStateOf(false) }
@@ -427,7 +430,9 @@ fun CollectionScreen(
                                             Text(
                                                 text = "${index + 1}. ${sup.name}",
                                                 style = MaterialTheme.typography.bodyLarge,
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .clickable { onOpenProfile(sup.name) }
                                             )
                                             IconButton(onClick = { onDeleteSupplier(sup.id) }) {
                                                 Icon(
@@ -453,10 +458,12 @@ fun CollectionScreen(
                                                 if (newSupplierName.isNotBlank()) {
                                                     onAddSupplier(
                                                         newSupplierName.trim(),
-                                                        newSupplierPhone.trim()
+                                                        newSupplierPhone.trim(),
+                                                        newSupplierVillage.trim()
                                                     )
                                                     newSupplierName = ""
                                                     newSupplierPhone = ""
+                                                    newSupplierVillage = ""
                                                 }
                                             }
                                         ) {
@@ -469,6 +476,13 @@ fun CollectionScreen(
                                         label = { Text("Phone / WhatsApp नंबर (sheet भेजने के लिए)") },
                                         singleLine = true,
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    OutlinedTextField(
+                                        value = newSupplierVillage,
+                                        onValueChange = { newSupplierVillage = it },
+                                        label = { Text("गाँव / घर की जानकारी (route)") },
+                                        singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
