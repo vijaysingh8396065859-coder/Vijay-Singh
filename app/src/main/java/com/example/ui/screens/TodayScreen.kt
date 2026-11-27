@@ -74,6 +74,7 @@ import com.example.data.DeliveryShift
 import com.example.data.MilkEntry
 import com.example.ui.theme.MeadowEmerald
 import com.example.ui.theme.MeadowEmeraldLight
+import com.example.ui.AppLang
 import com.example.viewmodel.DairyDataSnapshot
 
 @Composable
@@ -179,7 +180,7 @@ fun TodayScreen(
                                 .padding(top = 4.dp)
                         ) {
                             Text(
-                                text = "${selectedShift.labelHi} की बाकी एंट्री (${pendingCustomersForShift.size})",
+                                text = "${selectedShift.label} की बाकी एंट्री (${pendingCustomersForShift.size})",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onBackground
                             )
@@ -249,7 +250,7 @@ fun TodayScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "${selectedShift.labelHi} के लिए अभी कोई दूध एंट्री दर्ज नहीं है",
+                                    text = "${selectedShift.label} के लिए अभी कोई दूध एंट्री दर्ज नहीं है",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -340,7 +341,7 @@ private fun DateAndShiftHeader(
                     onClick = { onSelectShift(shift) },
                     label = {
                         Text(
-                            text = "${shift.labelHi} की शिफ्ट",
+                            text = "${shift.label} की शिफ्ट",
                             style = MaterialTheme.typography.labelLarge
                         )
                     },
@@ -412,17 +413,17 @@ private fun TodayHeroSummaryCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 HeroStatBlock(
-                    label = "कुल दूध",
-                    value = DairyFormatters.formatLiters(totalLiters),
+                    label = com.example.ui.AppLang.s("कुल दूध", "Total Milk"),
+                    value = DairyFormatters.formatKg(totalLiters),
                     modifier = Modifier.weight(1f)
                 )
                 HeroStatBlock(
-                    label = "दूध का बिल",
+                    label = com.example.ui.AppLang.s("दूध का बिल", "Milk Bill"),
                     value = DairyFormatters.formatRupees(totalBill),
                     modifier = Modifier.weight(1f)
                 )
                 HeroStatBlock(
-                    label = "प्राप्त पेमेंट",
+                    label = com.example.ui.AppLang.s("प्राप्त पेमेंट", "Payments Received"),
                     value = DairyFormatters.formatRupees(totalCollected),
                     modifier = Modifier.weight(1f)
                 )
@@ -510,8 +511,8 @@ private fun QuickDeliveryCustomerCard(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${customer.parsedMilkType.labelHi} • ${DairyFormatters.formatRupees(customer.ratePerLiter)}/ली." +
-                            if (balanceDue > 0.0) " • बकाया ${DairyFormatters.formatRupees(balanceDue)}" else "",
+                        text = "${customer.parsedMilkType.label} • ${DairyFormatters.formatRupees(customer.ratePerLiter)}/किलो" +
+                            if (balanceDue > 0.0) " • डेरी बाकी ${DairyFormatters.formatRupees(DairyFormatters.roundToRupee(balanceDue))}" else "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -550,7 +551,7 @@ private fun QuickDeliveryCustomerCard(
                             )
                         }
                         Text(
-                            text = DairyFormatters.formatLiters(qty),
+                            text = DairyFormatters.formatKg(qty),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 4.dp)
@@ -657,7 +658,7 @@ private fun LoggedMilkEntryCard(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (entry.absent) "छुट्टी" else entry.parsedMilkType.labelHi,
+                            text = if (entry.absent) "छुट्टी" else entry.parsedMilkType.label,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (entry.absent) {
                                 MaterialTheme.colorScheme.onErrorContainer
@@ -671,9 +672,9 @@ private fun LoggedMilkEntryCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (entry.absent) {
-                        "${entry.parsedShift.labelHi} • दूध नहीं लिया"
+                        "${entry.parsedShift.label} • दूध नहीं लिया"
                     } else {
-                        "${entry.parsedShift.labelHi} • ${DairyFormatters.formatLiters(entry.quantityLiters)} × ${DairyFormatters.formatRupees(entry.ratePerLiter)}"
+                        "${entry.parsedShift.label} • ${DairyFormatters.formatKg(entry.quantityLiters)} × ${DairyFormatters.formatRupees(entry.ratePerLiter)}"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
