@@ -338,7 +338,7 @@ fun CollectionScreen(
                                         FilterChip(
                                             selected = shift == option,
                                             onClick = { shift = option },
-                                            label = { Text(option.labelHi) }
+                                            label = { Text(option.label) }
                                         )
                                     }
                                 }
@@ -605,7 +605,7 @@ fun CollectionScreen(
                                 FilterChip(
                                     selected = shift == option,
                                     onClick = { shift = option },
-                                    label = { Text(option.labelHi) }
+                                    label = { Text(option.label) }
                                 )
                             }
                         }
@@ -823,11 +823,11 @@ fun CollectionScreen(
                                 )
                                 Text(
                                     text = if (col.fat == 0.0) {
-                                        "${col.parsedShift.labelHi} • " +
+                                        "${col.parsedShift.label} • " +
                                             "${DairyFormatters.formatLiters(col.quantityLiters)} • " +
                                             "FAT/SNF बाकी है"
                                     } else {
-                                        "${col.parsedShift.labelHi} • " +
+                                        "${col.parsedShift.label} • " +
                                             "${DairyFormatters.formatLiters(col.quantityLiters)} • " +
                                             "FAT ${col.fat} / SNF ${col.snf} • " +
                                             "${DairyFormatters.formatRupees(col.ratePerLiter)}/लीटर"
@@ -925,7 +925,7 @@ private fun PendingFatSnfRow(
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "${col.parsedShift.labelHi} • ${DairyFormatters.formatLiters(col.quantityLiters)}",
+                text = "${col.parsedShift.label} • ${DairyFormatters.formatLiters(col.quantityLiters)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
