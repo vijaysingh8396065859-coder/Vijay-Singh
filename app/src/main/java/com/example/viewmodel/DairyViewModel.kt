@@ -564,9 +564,13 @@ class DairyViewModel(
         }
     }
 
-    fun updateCollectionFatSnf(collection: MilkCollection, fat: Double, snf: Double) {
+    fun updateCollectionFatSnf(collection: MilkCollection, fat: Double, snf: Double, rateOverride: Double = 0.0) {
         val snapshotNow = (uiState.value as? UiState.Success)?.data ?: return
-        val rate = RateChart.rateFor(fat, snf, snapshotNow.importedRates, snapshotNow.rateOverrides)
+        val rate = if (rateOverride > 0.0) {
+            rateOverride
+        } else {
+            RateChart.rateFor(fat, snf, snapshotNow.importedRates, snapshotNow.rateOverrides)
+        }
         val amount = DairyFormatters.roundTwoDecimals(rate * collection.quantityLiters)
         viewModelScope.launch {
             _isMutating.value = true
