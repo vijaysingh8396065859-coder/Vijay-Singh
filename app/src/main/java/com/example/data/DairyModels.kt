@@ -13,10 +13,13 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToLong
 
-enum class MilkType(val labelHi: String) {
-    BUFFALO("भैंस"),
-    COW("गाय"),
-    MIXED("मिक्स");
+enum class MilkType(val labelHi: String, val labelEn: String) {
+    BUFFALO("भैंस", "Buffalo"),
+    COW("गाय", "Cow"),
+    MIXED("मिक्स", "Mixed");
+
+    val label: String
+        get() = if (com.example.ui.AppLang.isEnglish()) labelEn else labelHi
 
     companion object {
         fun fromName(raw: String): MilkType =
@@ -24,9 +27,12 @@ enum class MilkType(val labelHi: String) {
     }
 }
 
-enum class DeliveryShift(val labelHi: String) {
-    MORNING("सुबह"),
-    EVENING("शाम");
+enum class DeliveryShift(val labelHi: String, val labelEn: String) {
+    MORNING("सुबह", "Morning"),
+    EVENING("शाम", "Evening");
+
+    val label: String
+        get() = if (com.example.ui.AppLang.isEnglish()) labelEn else labelHi
 
     companion object {
         fun fromName(raw: String): DeliveryShift =
@@ -34,10 +40,13 @@ enum class DeliveryShift(val labelHi: String) {
     }
 }
 
-enum class CustomerShift(val labelHi: String) {
-    MORNING("सुबह"),
-    EVENING("शाम"),
-    BOTH("सुबह व शाम");
+enum class CustomerShift(val labelHi: String, val labelEn: String) {
+    MORNING("सुबह", "Morning"),
+    EVENING("शाम", "Evening"),
+    BOTH("सुबह व शाम", "Both");
+
+    val label: String
+        get() = if (com.example.ui.AppLang.isEnglish()) labelEn else labelHi
 
     companion object {
         fun fromName(raw: String): CustomerShift =
@@ -45,10 +54,13 @@ enum class CustomerShift(val labelHi: String) {
     }
 }
 
-enum class PaymentMode(val labelHi: String) {
-    CASH("नकद"),
-    UPI("UPI"),
-    BANK("बैंक");
+enum class PaymentMode(val labelHi: String, val labelEn: String) {
+    CASH("नकद", "Cash"),
+    UPI("UPI", "UPI"),
+    BANK("बैंक", "Bank");
+
+    val label: String
+        get() = if (com.example.ui.AppLang.isEnglish()) labelEn else labelHi
 
     companion object {
         fun fromName(raw: String): PaymentMode =
@@ -141,6 +153,21 @@ object DairyFormatters {
     private val hindiMonths = listOf(
         "जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून",
         "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"
+    )
+
+    private val englishMonths = listOf(
+        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    )
+
+    private val englishWeekdays = mapOf(
+        Calendar.SUNDAY to "Sun",
+        Calendar.MONDAY to "Mon",
+        Calendar.TUESDAY to "Tue",
+        Calendar.WEDNESDAY to "Wed",
+        Calendar.THURSDAY to "Thu",
+        Calendar.FRIDAY to "Fri",
+        Calendar.SATURDAY to "Sat"
     )
 
     private val hindiWeekdays = mapOf(
@@ -242,13 +269,14 @@ object DairyFormatters {
         val parsed = runCatching { dateKeyFormat.parse(dateKey) }.getOrNull() ?: return dateKey
         val cal = Calendar.getInstance().apply { time = parsed }
         val day = cal.get(Calendar.DAY_OF_MONTH)
-        val month = hindiMonths[cal.get(Calendar.MONTH)]
-        val weekday = hindiWeekdays[cal.get(Calendar.DAY_OF_WEEK)] ?: ""
+        val en = com.example.ui.AppLang.isEnglish()
+        val month = (if (en) englishMonths else hindiMonths)[cal.get(Calendar.MONTH)]
+        val weekday = (if (en) englishWeekdays else hindiWeekdays)[cal.get(Calendar.DAY_OF_WEEK)] ?: ""
         val today = todayDateKey()
         val yesterday = shiftDateKey(today, -1)
         return when (dateKey) {
-            today -> "आज • $day $month"
-            yesterday -> "कल • $day $month"
+            today -> if (en) "Today • $day $month" else "आज • $day $month"
+            yesterday -> if (en) "Yesterday • $day $month" else "कल • $day $month"
             else -> "$weekday, $day $month ${cal.get(Calendar.YEAR)}"
         }
     }
@@ -257,14 +285,14 @@ object DairyFormatters {
         val parsed = runCatching { dateKeyFormat.parse(dateKey) }.getOrNull() ?: return dateKey
         val cal = Calendar.getInstance().apply { time = parsed }
         val day = cal.get(Calendar.DAY_OF_MONTH)
-        val month = hindiMonths[cal.get(Calendar.MONTH)]
+        val month = (if (com.example.ui.AppLang.isEnglish()) englishMonths else hindiMonths)[cal.get(Calendar.MONTH)]
         return "$day $month"
     }
 
     fun formatMonthDisplayHi(monthKey: String): String = synchronized(monthKeyFormat) {
         val parsed = runCatching { monthKeyFormat.parse(monthKey) }.getOrNull() ?: return monthKey
         val cal = Calendar.getInstance().apply { time = parsed }
-        val month = hindiMonths[cal.get(Calendar.MONTH)]
+        val month = (if (com.example.ui.AppLang.isEnglish()) englishMonths else hindiMonths)[cal.get(Calendar.MONTH)]
         val year = cal.get(Calendar.YEAR)
         return "$month $year"
     }
@@ -283,6 +311,13 @@ object DairyFormatters {
         val rounded = roundTwoDecimals(liters)
         val df = DecimalFormat("0.##")
         return "${df.format(rounded)} ली."
+    }
+
+    /** Customer side doodh kilo me bikti hai — wahi number, sirf unit किलो। */
+    fun formatKg(kg: Double): String {
+        val rounded = roundTwoDecimals(kg)
+        val df = DecimalFormat("0.##")
+        return "${df.format(rounded)} किलो"
     }
 
     fun formatLitersNumeric(liters: Double): String {
