@@ -70,7 +70,10 @@ object HisaabSheetImage {
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             isAntiAlias = true
         }
-        canvas.drawText("Milk Diary", MARGIN, 96f, titlePaint)
+        canvas.drawText(
+            com.example.ui.AppLang.dairyName.ifBlank { "Milk Diary" },
+            MARGIN, 96f, titlePaint
+        )
         val tagPaint = Paint().apply {
             color = Color.rgb(0xE3, 0xF2, 0xFD)
             textSize = 34f
@@ -169,7 +172,8 @@ object HisaabSheetImage {
             textAlign = Paint.Align.CENTER
         }
         canvas.drawText(
-            "— Milk Diary • शुद्ध दूध • साफ हिसाब —",
+            "— " + com.example.ui.AppLang.dairyName.ifBlank { "Milk Diary" } +
+                " • शुद्ध दूध • साफ हिसाब —",
             WIDTH / 2f,
             y + 30f,
             footerPaint
