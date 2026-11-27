@@ -55,10 +55,13 @@ import com.example.data.CustomerAccountSummary
 import com.example.data.DairyFormatters
 import com.example.viewmodel.DairyDataSnapshot
 
-private enum class CustomerListFilter(val labelHi: String) {
-    ALL("सभी"),
-    DUE("बकाया"),
-    ACTIVE("सक्रिय")
+private enum class CustomerListFilter(val labelHi: String, val labelEn: String) {
+    ALL("सभी", "All"),
+    DUE("डेरी बाकी", "Dairy Due"),
+    ACTIVE("सक्रिय", "Active");
+
+    val label: String
+        get() = if (com.example.ui.AppLang.isEnglish()) labelEn else labelHi
 }
 
 @Composable
@@ -113,7 +116,7 @@ fun CustomersScreen(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("ग्राहक का नाम, नंबर या पता खोजें...") },
+                        placeholder = { Text(com.example.ui.AppLang.s("ग्राहक का नाम, नंबर या पता खोजें...", "Search customer name, number or address...")) },
                         leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
                         trailingIcon = if (searchQuery.isNotEmpty()) {
                             {
@@ -140,7 +143,7 @@ fun CustomersScreen(
                             FilterChip(
                                 selected = filter == itemFilter,
                                 onClick = { filter = itemFilter },
-                                label = { Text(itemFilter.labelHi) },
+                                label = { Text(itemFilter.label) },
                                 modifier = Modifier.testTag("customer_filter_${itemFilter.name.lowercase()}")
                             )
                         }
@@ -170,9 +173,9 @@ fun CustomersScreen(
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
                                 text = if (snapshot.customers.isEmpty()) {
-                                    "अभी कोई ग्राहक नहीं जोड़ा गया है"
+                                    com.example.ui.AppLang.s("अभी कोई ग्राहक नहीं जोड़ा गया है", "No customers added yet")
                                 } else {
-                                    "इस फ़िल्टर में कोई ग्राहक नहीं मिला"
+                                    com.example.ui.AppLang.s("इस फ़िल्टर में कोई ग्राहक नहीं मिला", "No customer in this filter")
                                 },
                                 style = MaterialTheme.typography.titleMedium
                             )
@@ -216,22 +219,22 @@ private fun CustomersOverviewStrip(
         modifier = Modifier.fillMaxWidth()
     ) {
         OverviewMetricCard(
-            label = "कुल ग्राहक",
+            label = com.example.ui.AppLang.s("कुल ग्राहक", "Total Customers"),
             value = "$customerCount",
             containerColor = MaterialTheme.colorScheme.surface,
             valueColor = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(0.85f)
         )
         OverviewMetricCard(
-            label = "कुल बकाया",
-            value = DairyFormatters.formatRupees(totalPendingDues),
+            label = com.example.ui.AppLang.s("कुल डेरी बाकी", "Total Dairy Due"),
+            value = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalPendingDues)),
             containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f),
             valueColor = MaterialTheme.colorScheme.error,
             modifier = Modifier.weight(1.1f)
         )
         OverviewMetricCard(
-            label = "कुल एडवांस",
-            value = DairyFormatters.formatRupees(totalAdvance),
+            label = com.example.ui.AppLang.s("कुल जमा", "Total Jama"),
+            value = DairyFormatters.formatRupees(DairyFormatters.roundToRupee(totalAdvance)),
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f),
             valueColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.weight(1.05f)
@@ -340,7 +343,7 @@ private fun CustomerLedgerCard(
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
-                                    text = "बंद",
+                                    text = com.example.ui.AppLang.s("बंद", "Closed"),
                                     style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -348,7 +351,7 @@ private fun CustomerLedgerCard(
                         }
                     }
                     Text(
-                        text = "${customer.parsedMilkType.labelHi} • ${DairyFormatters.formatLiters(customer.defaultQtyLiters)} • ${DairyFormatters.formatRupees(customer.ratePerLiter)}/ली. • ${customer.parsedDefaultShift.labelHi}",
+                        text = "${customer.parsedMilkType.label} • ${DairyFormatters.formatKg(customer.defaultQtyLiters)} • ${DairyFormatters.formatRupees(customer.ratePerLiter)}/किलो • ${customer.parsedDefaultShift.label}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -383,8 +386,8 @@ private fun CustomerLedgerCard(
                     ) {
                         Text(
                             text = when {
-                                isDue -> DairyFormatters.formatRupees(summary.balanceDue)
-                                isAdvance -> DairyFormatters.formatRupees(-summary.balanceDue)
+                                isDue -> DairyFormatters.formatRupees(DairyFormatters.roundToRupee(summary.balanceDue))
+                                isAdvance -> DairyFormatters.formatRupees(DairyFormatters.roundToRupee(-summary.balanceDue))
                                 else -> "₹0"
                             },
                             style = MaterialTheme.typography.titleSmall,
@@ -397,9 +400,9 @@ private fun CustomerLedgerCard(
                         )
                         Text(
                             text = when {
-                                isDue -> "बकाया"
-                                isAdvance -> "एडवांस"
-                                else -> "हिसाब साफ"
+                                isDue -> "डेरी बाकी"
+                                isAdvance -> "जमा"
+                                else -> com.example.ui.AppLang.s("हिसाब साफ", "Settled")
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -426,7 +429,7 @@ private fun CustomerLedgerCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("दूध जोड़ें", style = MaterialTheme.typography.labelMedium)
+                    Text(com.example.ui.AppLang.s("दूध जोड़ें", "Add Milk"), style = MaterialTheme.typography.labelMedium)
                 }
 
                 OutlinedButton(
@@ -443,7 +446,7 @@ private fun CustomerLedgerCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("पेमेंट लें", style = MaterialTheme.typography.labelMedium)
+                    Text(com.example.ui.AppLang.s("पेमेंट लें", "Take Payment"), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
